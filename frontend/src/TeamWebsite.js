@@ -421,7 +421,7 @@ const TeamWebsite = () => {
           <div className="flex justify-between items-center">
             <div className="flex items-center">
               {/* Updated logo */}
-              <img src='/techtan-logo.png' alt="Techtan Logo" className="h-10 mr-3" />
+              <img src={`${process.env.PUBLIC_URL}/techtan-logo.png`} alt="Techtan Logo" className="h-10 mr-3" />
             </div>
             
             {/* Desktop Navigation */}
@@ -612,7 +612,7 @@ const TeamWebsite = () => {
         id="home" 
         className="relative flex items-center justify-center"
         style={{
-          backgroundImage: `url('/hero-background.jpg')`,
+          backgroundImage: `url(${process.env.PUBLIC_URL}/hero-background.jpg)`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           minHeight: '100vh'
