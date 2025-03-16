@@ -16,7 +16,7 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <Router>
+    <Router basename="/Techtan"> {/* ← Add this line */}
       <Routes>
         <Route path="/" element={<TeamWebsite />} />
         <Route path="/login" element={<Login />} />
