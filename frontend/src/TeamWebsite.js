@@ -46,8 +46,8 @@ const translations = {
   },
   fa: {
     home: {
-      title: 'توسعه وب حرفه ای',
-      subtitle: 'ما وب سایت های تمیز و کاربردی می سازیم که تجربه کاربری استثنایی ارائه می دهند',
+      title: 'ایده‌ها را به واقعیت دیجیتال تبدیل می‌کنیم.',
+      subtitle: 'در Techtan، خلاقیت را با مهندسی ترکیب می‌کنیم تا راه‌حل‌های نرم‌افزاری هوشمند، مقیاس‌پذیر و شیک بسازیم.',
       cta: 'تماس با ما'
     },
     team: {
@@ -87,8 +87,8 @@ const translations = {
   },
   ar: {
     home: {
-      title: 'تطوير الويب الاحترافي',
-      subtitle: 'نحن نبني مواقع ويب نظيفة وعملية توفر تجارب مستخدم استثنائية',
+      title: 'نبني الأفكار إلى واقع رقمي.',
+      subtitle: 'في تيكتان، ندمج الإبداع مع الهندسة لبناء حلول برمجية ذكية وقابلة للتوسع وأنيقة.',
       cta: 'تواصل معنا'
     },
     team: {
@@ -950,7 +950,7 @@ const TeamWebsite = () => {
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-4 md:mb-0">
-              <img src='/techtan-logo.png' alt="Techtan Logo" className="h-10 mr-3" />
+              <img src={`${process.env.PUBLIC_URL}/techtan-logo.png`} alt="Techtan Logo" className="h-10 mr-3" />
               <p className="text-gray-400 text-sm">{t('footer', 'services')}</p>
             </div>
             <div className="text-sm">
