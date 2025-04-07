@@ -8,7 +8,7 @@ const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
   
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    return <Navigate to="login" />;
   }
   
   return children;
@@ -16,12 +16,12 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
-    <Router basename="/Techtan"> {/* ← Add this line */}
+    <Router basename="/Techtan">
       <Routes>
         <Route path="/" element={<TeamWebsite />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="login" element={<Login />} />
         <Route 
-          path="/admin" 
+          path="admin" 
           element={
             <ProtectedRoute>
               <AdminPanel />
