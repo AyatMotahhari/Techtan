@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import emailjs from '@emailjs/browser';
+import { Link } from 'react-router-dom';
 
 // Language translations
 const translations = {
@@ -955,9 +956,9 @@ const TeamWebsite = () => {
             </div>
             <div className="text-sm">
               <p>{replaceYear(t('footer', 'copyright').replace('DevTeam Solutions', 'Techtan'))}</p>
-              <a href="/Techtan/login" className="text-gray-400 hover:text-white transition-colors">
+              <Link to="/login" className="text-gray-400 hover:text-white transition-colors">
                 {t('footer', 'login')}
-              </a>
+              </Link>
             </div>
           </div>
         </div>

@@ -5,8 +5,7 @@ import AdminPanel from './AdminPanel';
 
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-  if (!isAuthenticated) return <Navigate to="/login" />;
-  return children;
+  return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
 function App() {
@@ -15,13 +14,13 @@ function App() {
       <Routes>
         <Route path="/" element={<TeamWebsite />} />
         <Route path="/login" element={<Login />} />
-        <Route 
-          path="/admin" 
+        <Route
+          path="/admin"
           element={
             <ProtectedRoute>
               <AdminPanel />
             </ProtectedRoute>
-          } 
+          }
         />
       </Routes>
     </Router>
