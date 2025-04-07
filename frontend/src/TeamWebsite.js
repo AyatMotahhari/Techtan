@@ -955,7 +955,9 @@ const TeamWebsite = () => {
             </div>
             <div className="text-sm">
               <p>{replaceYear(t('footer', 'copyright').replace('DevTeam Solutions', 'Techtan'))}</p>
-              <a href="/login" className="text-gray-400 hover:text-white transition-colors">{t('footer', 'login')}</a>
+              <a href="/Techtan/login" className="text-gray-400 hover:text-white transition-colors">
+                {t('footer', 'login')}
+              </a>
             </div>
           </div>
         </div>
