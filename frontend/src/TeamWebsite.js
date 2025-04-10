@@ -801,20 +801,85 @@ const TeamWebsite = () => {
               {/* Desktop View */}
               <div className="hidden md:grid md:grid-cols-3 gap-6">
                 {services.map(service => (
-                  <div key={service.id} className="group h-full min-h-[320px] rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 relative">
-                    <div className="bg-gradient-to-r from-blue-500 to-blue-700 p-6 text-white">
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-xl font-bold">{service.title}</h3>
-                        <div className="bg-white text-blue-700 px-3 py-1 rounded-full text-lg font-bold">
+                  <div key={service.id} className="group h-full bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100">
+                    {/* Service Header with Gradient */}
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 relative overflow-hidden">
+                      {/* Decorative shapes */}
+                      <div className="absolute right-0 top-0 -mt-4 -mr-4 w-20 h-20 rounded-full bg-white opacity-10"></div>
+                      <div className="absolute left-0 bottom-0 -mb-8 -ml-8 w-24 h-24 rounded-full bg-white opacity-10"></div>
+                      
+                      {/* Service Icon - using a generic icon, you can replace with specific icons */}
+                      <div className="bg-white/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 backdrop-blur-sm">
+                        {service.icon ? (
+                          <img src={service.icon} alt="" className="w-6 h-6" />
+                        ) : (
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                          </svg>
+                        )}
+                      </div>
+                      
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-xl font-bold text-white mb-2">{service.title}</h3>
+                        <div className="bg-white text-blue-700 px-3 py-1 rounded-full text-sm font-bold shadow-md">
                           {service.price}
                         </div>
                       </div>
+                      
+                      {/* Short intro text if available */}
+                      {service.shortIntro && (
+                        <p className="text-blue-100 text-sm mt-2">{service.shortIntro}</p>
+                      )}
                     </div>
-                    <div className="bg-white p-6 flex-grow min-h-[200px]">
-                      <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    
+                    {/* Service Body */}
+                    <div className="p-6 flex-grow">
+                      <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm">
                         {service.description}
                       </div>
+                      
+                      {/* Feature list if available */}
+                      {service.features && service.features.length > 0 && (
+                        <ul className="mt-4 space-y-2">
+                          {service.features.map((feature, index) => (
+                            <li key={index} className="flex items-start">
+                              <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                              </svg>
+                              <span className="text-gray-600 text-sm">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      
+                      {/* CTA Button */}
+                      {service.ctaLink && (
+                        <div className="mt-6">
+                          <a 
+                            href={service.ctaLink} 
+                            className="inline-flex items-center text-blue-600 font-medium text-sm hover:text-blue-800 transition-colors"
+                          >
+                            Learn more
+                            <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                          </a>
+                        </div>
+                      )}
                     </div>
+                    
+                    {/* Service Footer with tags if available */}
+                    {service.tags && service.tags.length > 0 && (
+                      <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                        <div className="flex flex-wrap gap-2">
+                          {service.tags.map((tag, index) => (
+                            <span key={index} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -823,20 +888,85 @@ const TeamWebsite = () => {
               <div className="md:hidden relative">
                 <div className="overflow-hidden rounded-md">
                   {services.length > 0 && (
-                    <div className="group h-full min-h-[320px] rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 relative">
-                      <div className="bg-gradient-to-r from-blue-500 to-blue-700 p-6 text-white">
-                        <div className="flex justify-between items-center">
-                          <h3 className="text-xl font-bold">{services[currentServiceSlide].title}</h3>
-                          <div className="bg-white text-blue-700 px-3 py-1 rounded-full text-lg font-bold">
+                    <div className="group h-full bg-white rounded-xl overflow-hidden shadow-md border border-gray-100">
+                      {/* Service Header with Gradient */}
+                      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 relative overflow-hidden">
+                        {/* Decorative shapes */}
+                        <div className="absolute right-0 top-0 -mt-4 -mr-4 w-20 h-20 rounded-full bg-white opacity-10"></div>
+                        <div className="absolute left-0 bottom-0 -mb-8 -ml-8 w-24 h-24 rounded-full bg-white opacity-10"></div>
+                        
+                        {/* Service Icon */}
+                        <div className="bg-white/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 backdrop-blur-sm">
+                          {services[currentServiceSlide].icon ? (
+                            <img src={services[currentServiceSlide].icon} alt="" className="w-6 h-6" />
+                          ) : (
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                          )}
+                        </div>
+                        
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-xl font-bold text-white mb-2">{services[currentServiceSlide].title}</h3>
+                          <div className="bg-white text-blue-700 px-3 py-1 rounded-full text-sm font-bold shadow-md">
                             {services[currentServiceSlide].price}
                           </div>
                         </div>
+                        
+                        {/* Short intro text if available */}
+                        {services[currentServiceSlide].shortIntro && (
+                          <p className="text-blue-100 text-sm mt-2">{services[currentServiceSlide].shortIntro}</p>
+                        )}
                       </div>
-                      <div className="bg-white p-6 flex-grow min-h-[200px]">
-                        <div className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                      
+                      {/* Service Body */}
+                      <div className="p-6 flex-grow">
+                        <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm">
                           {services[currentServiceSlide].description}
                         </div>
+                        
+                        {/* Feature list if available */}
+                        {services[currentServiceSlide].features && services[currentServiceSlide].features.length > 0 && (
+                          <ul className="mt-4 space-y-2">
+                            {services[currentServiceSlide].features.map((feature, index) => (
+                              <li key={index} className="flex items-start">
+                                <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span className="text-gray-600 text-sm">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        
+                        {/* CTA Button */}
+                        {services[currentServiceSlide].ctaLink && (
+                          <div className="mt-6">
+                            <a 
+                              href={services[currentServiceSlide].ctaLink} 
+                              className="inline-flex items-center text-blue-600 font-medium text-sm hover:text-blue-800 transition-colors"
+                            >
+                              Learn more
+                              <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                              </svg>
+                            </a>
+                          </div>
+                        )}
                       </div>
+                      
+                      {/* Service Footer with tags if available */}
+                      {services[currentServiceSlide].tags && services[currentServiceSlide].tags.length > 0 && (
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                          <div className="flex flex-wrap gap-2">
+                            {services[currentServiceSlide].tags.map((tag, index) => (
+                              <span key={index} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -846,7 +976,7 @@ const TeamWebsite = () => {
                   <div className="flex justify-between mt-4">
                     <button 
                       onClick={() => prevSlide('service')}
-                      className="bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700"
+                      className="bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
@@ -856,15 +986,15 @@ const TeamWebsite = () => {
                       {services.map((_, index) => (
                         <span 
                           key={index}
-                          className={`h-2 w-2 rounded-full ${
-                            currentServiceSlide === index ? 'bg-blue-600' : 'bg-gray-300'
+                          className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                            currentServiceSlide === index ? 'bg-blue-600 w-4' : 'bg-gray-300'
                           }`}
                         ></span>
                       ))}
                     </div>
                     <button 
                       onClick={() => nextSlide('service')}
-                      className="bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700"
+                      className="bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
