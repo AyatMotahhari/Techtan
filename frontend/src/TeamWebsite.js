@@ -329,6 +329,14 @@ const TeamWebsite = () => {
     document.documentElement.dir = lang === 'en' ? 'ltr' : 'rtl';
     document.documentElement.lang = lang;
     setLangDropdownOpen(false); // Close dropdown after selection
+    
+    // Fix for RTL language specific styles
+    const htmlElement = document.documentElement;
+    if (lang === 'en') {
+      htmlElement.classList.remove('rtl-layout');
+    } else {
+      htmlElement.classList.add('rtl-layout');
+    }
   };
 
   // Get language display name
@@ -365,7 +373,7 @@ const TeamWebsite = () => {
     }
   };
 
-  // Add CSS for animations
+  // Add CSS for animations and RTL fixes
   useEffect(() => {
     // Add the animation styles to the document head
     const animationStyles = `
@@ -400,6 +408,54 @@ const TeamWebsite = () => {
       
       .delay-1000 {
         animation-delay: 1s;
+      }
+      
+      /* RTL specific fixes */
+      .rtl-layout .flex.items-center.space-x-1 {
+        flex-direction: row-reverse;
+      }
+      
+      .rtl-layout .ml-1 {
+        margin-left: 0;
+        margin-right: 0.25rem;
+      }
+      
+      .rtl-layout .mr-2,
+      .rtl-layout .mr-3,
+      .rtl-layout .mr-4 {
+        margin-right: 0;
+      }
+      
+      .rtl-layout .mr-2 {
+        margin-left: 0.5rem;
+      }
+      
+      .rtl-layout .mr-3 {
+        margin-left: 0.75rem;
+      }
+      
+      .rtl-layout .mr-4 {
+        margin-left: 1rem;
+      }
+      
+      .rtl-layout .space-x-1 > * + * {
+        margin-left: 0;
+        margin-right: 0.25rem;
+      }
+      
+      .rtl-layout .space-x-2 > * + * {
+        margin-left: 0;
+        margin-right: 0.5rem;
+      }
+      
+      .rtl-layout .space-x-3 > * + * {
+        margin-left: 0;
+        margin-right: 0.75rem;
+      }
+      
+      .rtl-layout .space-x-8 > * + * {
+        margin-left: 0;
+        margin-right: 2rem;
       }
     `;
     
@@ -485,7 +541,7 @@ const TeamWebsite = () => {
                 </button>
                 
                 {langDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200">
+                  <div className={`absolute ${language === 'en' ? 'right-0' : 'left-0'} mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-200`}>
                     <button 
                       onClick={() => changeLanguage('en')}
                       className={`block px-4 py-2 text-sm text-left w-full hover:bg-gray-100 ${language === 'en' ? 'bg-blue-50 text-blue-700' : 'text-gray-700'}`}
