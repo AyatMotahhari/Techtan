@@ -775,7 +775,7 @@ const TeamWebsite = () => {
                     <img src={project.image} alt={project.title} className="w-full h-48 object-cover" />
                     <div className="p-4 md:p-5">
                       <h3 className="text-lg font-medium mb-2 text-gray-900">{project.title}</h3>
-                      <p className="text-gray-600 text-sm">{project.description}</p>
+                      <p className="text-gray-600 text-sm whitespace-pre-wrap">{project.description}</p>
                       {project.link ? (
                         <a 
                           href={project.link} 
@@ -809,7 +809,7 @@ const TeamWebsite = () => {
                         <h3 className="text-lg font-medium mb-2 text-gray-900">
                           {projects[currentProjectSlide].title}
                         </h3>
-                        <p className="text-gray-600 text-sm">
+                        <p className="text-gray-600 text-sm whitespace-pre-wrap">
                           {projects[currentProjectSlide].description}
                         </p>
                         {projects[currentProjectSlide].link ? (

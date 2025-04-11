@@ -714,8 +714,10 @@ const AdminPanel = () => {
                   onChange={handleProjectChange}
                   className="w-full p-2 border border-gray-300 rounded"
                   rows="3"
+                  placeholder="Enter project description. Line breaks will be preserved."
                   required
                 ></textarea>
+                <p className="text-xs text-gray-500 mt-1">Line breaks will be preserved when displayed.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Project URL (Optional)</label>
@@ -798,7 +800,7 @@ const AdminPanel = () => {
                 <img src={project.image} alt={project.title} className="w-full h-40 object-cover" />
                 <div className="p-4">
                   <h3 className="font-medium">{project.title}</h3>
-                  <p className="text-sm text-gray-600">{project.description}</p>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{project.description}</p>
                   {project.link && (
                     <a 
                       href={project.link} 
