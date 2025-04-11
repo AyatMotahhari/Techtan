@@ -864,22 +864,21 @@ const TeamWebsite = () => {
                       <div className="absolute right-0 top-0 -mt-4 -mr-4 w-20 h-20 rounded-full bg-white opacity-10"></div>
                       <div className="absolute left-0 bottom-0 -mb-8 -ml-8 w-24 h-24 rounded-full bg-white opacity-10"></div>
                       
-                      {/* Service Icon - using a generic icon, you can replace with specific icons */}
-                      <div className="bg-white/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 backdrop-blur-sm">
-                        {service.icon ? (
+                      {/* Service Icon if available */}
+                      {service.icon && (
+                        <div className="bg-white/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 backdrop-blur-sm">
                           <img src={service.icon} alt="" className="w-6 h-6" />
-                        ) : (
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                          </svg>
-                        )}
-                      </div>
-                      
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-xl font-bold text-white mb-2">{service.title}</h3>
-                        <div className="bg-white text-blue-700 px-3 py-1 rounded-full text-sm font-bold shadow-md">
-                          {service.price}
                         </div>
+                      )}
+                      
+                      {/* Service Title */}
+                      <h3 className="text-xl font-bold text-white mb-3">{service.title}</h3>
+                      
+                      {/* Service Price */}
+                      <div className="flex items-center">
+                        <p className="text-white/90 text-lg font-bold">
+                          {service.price}
+                        </p>
                       </div>
                       
                       {/* Short intro text if available */}
@@ -890,19 +889,28 @@ const TeamWebsite = () => {
                     
                     {/* Service Body */}
                     <div className="p-6 flex-grow">
-                      <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm">
-                        {service.description}
-                      </div>
+                      {/* Plain text description */}
+                      {service.description && (
+                        <p className="text-gray-700 mb-4 text-sm">{service.description}</p>
+                      )}
                       
-                      {/* Feature list if available */}
-                      {service.features && service.features.length > 0 && (
-                        <ul className="mt-4 space-y-2">
+                      {/* Feature list */}
+                      {service.features && service.features.length > 0 ? (
+                        <ul className="space-y-3">
                           {service.features.map((feature, index) => (
                             <li key={index} className="flex items-start">
-                              <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                              </svg>
-                              <span className="text-gray-600 text-sm">{feature}</span>
+                              <span className="text-amber-500 mr-2">•</span>
+                              <span className="text-gray-700">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        // If no features array but description has line breaks, convert to bullet points
+                        <ul className="space-y-3">
+                          {service.description && service.description.split('\n').filter(line => line.trim()).map((line, index) => (
+                            <li key={index} className="flex items-start">
+                              <span className="text-amber-500 mr-2">•</span>
+                              <span className="text-gray-700">{line.trim()}</span>
                             </li>
                           ))}
                         </ul>
@@ -924,18 +932,12 @@ const TeamWebsite = () => {
                       )}
                     </div>
                     
-                    {/* Service Footer with tags if available */}
-                    {service.tags && service.tags.length > 0 && (
-                      <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-                        <div className="flex flex-wrap gap-2">
-                          {service.tags.map((tag, index) => (
-                            <span key={index} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    {/* Service Footer with delivery time */}
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                      <p className="text-sm text-gray-700">
+                        {service.deliveryTime ? `Delivery: ${service.deliveryTime}` : "Delivery: 3-5 days"}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -951,22 +953,21 @@ const TeamWebsite = () => {
                         <div className="absolute right-0 top-0 -mt-4 -mr-4 w-20 h-20 rounded-full bg-white opacity-10"></div>
                         <div className="absolute left-0 bottom-0 -mb-8 -ml-8 w-24 h-24 rounded-full bg-white opacity-10"></div>
                         
-                        {/* Service Icon */}
-                        <div className="bg-white/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 backdrop-blur-sm">
-                          {services[currentServiceSlide].icon ? (
+                        {/* Service Icon if available */}
+                        {services[currentServiceSlide].icon && (
+                          <div className="bg-white/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 backdrop-blur-sm">
                             <img src={services[currentServiceSlide].icon} alt="" className="w-6 h-6" />
-                          ) : (
-                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                            </svg>
-                          )}
-                        </div>
-                        
-                        <div className="flex justify-between items-start">
-                          <h3 className="text-xl font-bold text-white mb-2">{services[currentServiceSlide].title}</h3>
-                          <div className="bg-white text-blue-700 px-3 py-1 rounded-full text-sm font-bold shadow-md">
-                            {services[currentServiceSlide].price}
                           </div>
+                        )}
+                        
+                        {/* Service Title */}
+                        <h3 className="text-xl font-bold text-white mb-3">{services[currentServiceSlide].title}</h3>
+                        
+                        {/* Service Price */}
+                        <div className="flex items-center">
+                          <p className="text-white/90 text-lg font-bold">
+                            {services[currentServiceSlide].price}
+                          </p>
                         </div>
                         
                         {/* Short intro text if available */}
@@ -977,19 +978,28 @@ const TeamWebsite = () => {
                       
                       {/* Service Body */}
                       <div className="p-6 flex-grow">
-                        <div className="text-gray-700 whitespace-pre-wrap leading-relaxed text-sm">
-                          {services[currentServiceSlide].description}
-                        </div>
+                        {/* Plain text description */}
+                        {services[currentServiceSlide].description && (
+                          <p className="text-gray-700 mb-4 text-sm">{services[currentServiceSlide].description}</p>
+                        )}
                         
-                        {/* Feature list if available */}
-                        {services[currentServiceSlide].features && services[currentServiceSlide].features.length > 0 && (
-                          <ul className="mt-4 space-y-2">
+                        {/* Feature list */}
+                        {services[currentServiceSlide].features && services[currentServiceSlide].features.length > 0 ? (
+                          <ul className="space-y-3">
                             {services[currentServiceSlide].features.map((feature, index) => (
                               <li key={index} className="flex items-start">
-                                <svg className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                                <span className="text-gray-600 text-sm">{feature}</span>
+                                <span className="text-amber-500 mr-2">•</span>
+                                <span className="text-gray-700">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          // If no features array but description has line breaks, convert to bullet points
+                          <ul className="space-y-3">
+                            {services[currentServiceSlide].description && services[currentServiceSlide].description.split('\n').filter(line => line.trim()).map((line, index) => (
+                              <li key={index} className="flex items-start">
+                                <span className="text-amber-500 mr-2">•</span>
+                                <span className="text-gray-700">{line.trim()}</span>
                               </li>
                             ))}
                           </ul>
@@ -1011,18 +1021,12 @@ const TeamWebsite = () => {
                         )}
                       </div>
                       
-                      {/* Service Footer with tags if available */}
-                      {services[currentServiceSlide].tags && services[currentServiceSlide].tags.length > 0 && (
-                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
-                          <div className="flex flex-wrap gap-2">
-                            {services[currentServiceSlide].tags.map((tag, index) => (
-                              <span key={index} className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      {/* Service Footer with delivery time */}
+                      <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                        <p className="text-sm text-gray-700">
+                          {services[currentServiceSlide].deliveryTime ? `Delivery: ${services[currentServiceSlide].deliveryTime}` : "Delivery: 3-5 days"}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>

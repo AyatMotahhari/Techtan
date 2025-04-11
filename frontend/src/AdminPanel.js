@@ -178,7 +178,9 @@ const AdminPanel = () => {
   const [newService, setNewService] = useState({
     title: '',
     price: '',
-    description: ''
+    description: '',
+    features: [],
+    deliveryTime: '3-5 days'
   });
   
   // Mark a contact submission as read
@@ -367,7 +369,7 @@ const AdminPanel = () => {
       setEditingId(null);
       
       // Clear form
-      setNewService({ title: '', price: '', description: '' });
+      setNewService({ title: '', price: '', description: '', features: [], deliveryTime: '3-5 days' });
       
       // Remove query parameters
       navigate('/admin', { replace: true });
@@ -375,7 +377,7 @@ const AdminPanel = () => {
       // Add new service
       const id = services.length > 0 ? Math.max(...services.map(s => s.id)) + 1 : 1;
       setServices([...services, { id, ...newService }]);
-      setNewService({ title: '', price: '', description: '' });
+      setNewService({ title: '', price: '', description: '', features: [], deliveryTime: '3-5 days' });
     }
   };
   
@@ -390,7 +392,7 @@ const AdminPanel = () => {
     setTeamMemberImagePreview(null);
     setNewProject({ title: '', description: '', link: '', image: '/api/placeholder/300/200' });
     setProjectImagePreview(null);
-    setNewService({ title: '', price: '', description: '' });
+    setNewService({ title: '', price: '', description: '', features: [], deliveryTime: '3-5 days' });
     
     // Remove query parameters
     navigate('/admin', { replace: true });
@@ -847,18 +849,43 @@ const AdminPanel = () => {
                   required
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Time</label>
+                <input
+                  type="text"
+                  name="deliveryTime"
+                  value={newService.deliveryTime}
+                  onChange={handleServiceChange}
+                  className="w-full p-2 border border-gray-300 rounded"
+                />
+              </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Short Description (Optional)</label>
                 <textarea
                   name="description"
                   value={newService.description}
                   onChange={handleServiceChange}
                   className="w-full p-2 border border-gray-300 rounded"
-                  rows="3"
-                  placeholder="Enter service description. Line breaks will be preserved in the display."
+                  rows="2"
+                ></textarea>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Features (One per line)</label>
+                <textarea
+                  name="featuresText"
+                  value={newService.features ? newService.features.join('\n') : ''}
+                  onChange={(e) => {
+                    const featuresArray = e.target.value.split('\n').filter(line => line.trim());
+                    setNewService({
+                      ...newService,
+                      features: featuresArray
+                    });
+                  }}
+                  className="w-full p-2 border border-gray-300 rounded"
+                  rows="6"
                   required
                 ></textarea>
-                <p className="text-xs text-gray-500 mt-1">Line breaks will be preserved when displayed on the website.</p>
+                <p className="text-xs text-gray-500 mt-1">Enter each feature on a new line. These will appear as bullet points.</p>
               </div>
             </div>
             <div className="flex space-x-4">
@@ -883,8 +910,8 @@ const AdminPanel = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {services.map(service => (
-              <div key={service.id} className="border rounded-lg p-4 relative">
-                <div className="absolute top-2 right-2 flex space-x-2">
+              <div key={service.id} className="bg-white border rounded-xl overflow-hidden relative">
+                <div className="absolute top-2 right-2 flex space-x-2 z-10">
                   <button
                     onClick={() => {
                       setIsEditing(true);
@@ -906,9 +933,30 @@ const AdminPanel = () => {
                     &times;
                   </button>
                 </div>
-                <h3 className="font-medium">{service.title}</h3>
-                <p className="text-sm text-blue-600 my-1">{service.price}</p>
-                <div className="text-sm text-gray-600 whitespace-pre-wrap">{service.description}</div>
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 relative overflow-hidden">
+                  {/* Decorative shapes */}
+                  <div className="absolute right-0 top-0 -mt-4 -mr-4 w-16 h-16 rounded-full bg-white opacity-10"></div>
+                  <div className="absolute left-0 bottom-0 -mb-4 -ml-4 w-16 h-16 rounded-full bg-white opacity-10"></div>
+                
+                  <h3 className="font-medium text-white mb-2">{service.title}</h3>
+                  <p className="text-white/90 font-bold">{service.price}</p>
+                </div>
+                <div className="p-4">
+                  {service.description && <p className="text-sm text-gray-600 mb-2">{service.description}</p>}
+                  {service.features && service.features.length > 0 && (
+                    <ul className="text-sm space-y-1">
+                      {service.features.map((feature, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="text-amber-500 mr-2">•</span>
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {service.deliveryTime && (
+                    <p className="text-sm text-gray-600 mt-2 pt-2 border-t">Delivery: {service.deliveryTime}</p>
+                  )}
+                </div>
               </div>
             ))}
           </div>
