@@ -15,18 +15,109 @@ const FirebaseCheck = () => {
   const [testResults, setTestResults] = useState({
     running: true,
     overallStatus: 'running',
-    tests: []
+    tests: [],
+    deviceInfo: {}
   });
 
   useEffect(() => {
+    // Collect device and environment information
+    const getDeviceInfo = () => {
+      const info = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        screenWidth: window.screen.width,
+        screenHeight: window.screen.height,
+        language: navigator.language,
+        cookiesEnabled: navigator.cookieEnabled,
+        online: navigator.onLine,
+        url: window.location.href,
+        pathname: window.location.pathname,
+        hash: window.location.hash,
+        protocol: window.location.protocol,
+        isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+        storageAvailable: testStorageAvailability(),
+        basePath: document.querySelector('base')?.href || 'none'
+      };
+      return info;
+    };
+
+    // Test if localStorage and sessionStorage are available
+    const testStorageAvailability = () => {
+      const results = {
+        localStorage: false,
+        sessionStorage: false,
+        indexedDB: false
+      };
+      
+      try {
+        localStorage.setItem('test', 'test');
+        localStorage.removeItem('test');
+        results.localStorage = true;
+      } catch (e) {
+        console.warn('localStorage not available');
+      }
+      
+      try {
+        sessionStorage.setItem('test', 'test');
+        sessionStorage.removeItem('test');
+        results.sessionStorage = true;
+      } catch (e) {
+        console.warn('sessionStorage not available');
+      }
+      
+      try {
+        if (window.indexedDB) {
+          results.indexedDB = true;
+        }
+      } catch (e) {
+        console.warn('indexedDB not available');
+      }
+      
+      return results;
+    };
+
     async function runTests() {
       const results = {
         running: false,
         overallStatus: 'unknown',
-        tests: []
+        tests: [],
+        deviceInfo: getDeviceInfo()
       };
 
+      // Test loading resources
+      const resourceTests = [
+        { name: 'manifest.json', url: `${window.location.origin}/manifest.json` },
+        { name: 'favicon.ico', url: `${window.location.origin}/favicon.ico` },
+        { name: 'index.html', url: `${window.location.origin}/index.html` }
+      ];
+
+      for (const resource of resourceTests) {
+        try {
+          const response = await fetch(resource.url, { method: 'HEAD', cache: 'no-store' });
+          results.tests.push({
+            name: `Resource ${resource.name}`,
+            status: response.ok ? 'pass' : 'fail',
+            message: response.ok 
+              ? `Successfully loaded ${resource.name}` 
+              : `Failed to load ${resource.name}: ${response.status} ${response.statusText}`
+          });
+        } catch (error) {
+          results.tests.push({
+            name: `Resource ${resource.name}`,
+            status: 'fail',
+            message: `Error loading ${resource.name}: ${error.message}`
+          });
+        }
+      }
+
       try {
+        // Test network connectivity
+        results.tests.push({
+          name: 'Network Status',
+          status: navigator.onLine ? 'pass' : 'fail',
+          message: navigator.onLine ? 'Browser reports online' : 'Browser reports offline'
+        });
+        
         // Test 1: Check permissions
         try {
           const permissionsResult = await checkFirebasePermissions();
@@ -48,7 +139,8 @@ const FirebaseCheck = () => {
           const testDocRef = doc(collection(db, '_connection_test'));
           await setDoc(testDocRef, {
             timestamp: new Date().toISOString(),
-            message: 'Test connection document'
+            message: 'Test connection document',
+            device: results.deviceInfo.userAgent
           });
           
           results.tests.push({
@@ -135,8 +227,11 @@ const FirebaseCheck = () => {
     runTests();
   }, []);
 
+  // Special mobile optimized view
+  const isMobile = testResults.deviceInfo.isMobile;
+
   return (
-    <div className="max-w-2xl mx-auto mt-8 p-4">
+    <div className={`max-w-2xl mx-auto mt-8 p-4 ${isMobile ? 'text-sm' : ''}`}>
       <h1 className="text-2xl font-bold mb-6">Firebase Connection Diagnostics</h1>
       
       {testResults.running ? (
@@ -182,12 +277,41 @@ const FirebaseCheck = () => {
             ))}
           </div>
           
+          <div className="mt-4 p-4 rounded-lg bg-gray-50 border border-gray-200 mb-6">
+            <h3 className="font-medium mb-2">Device Information</h3>
+            <div className="grid grid-cols-1 gap-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Device Type:</span>
+                <span>{testResults.deviceInfo.isMobile ? 'Mobile' : 'Desktop'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Browser Storage:</span>
+                <span>
+                  {testResults.deviceInfo.storageAvailable?.localStorage ? '✓ LocalStorage ' : '✗ LocalStorage '}
+                  {testResults.deviceInfo.storageAvailable?.indexedDB ? '✓ IndexedDB' : '✗ IndexedDB'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Screen Size:</span>
+                <span>{testResults.deviceInfo.screenWidth}x{testResults.deviceInfo.screenHeight}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Online Status:</span>
+                <span>{testResults.deviceInfo.online ? 'Online' : 'Offline'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Base URL:</span>
+                <span className="truncate">{testResults.deviceInfo.basePath}</span>
+              </div>
+            </div>
+          </div>
+          
           <div className="mt-8 bg-blue-50 p-4 rounded-lg">
             <h3 className="font-medium text-blue-800 mb-2">Troubleshooting Steps</h3>
             <ol className="list-decimal list-inside text-sm space-y-2 text-blue-900">
               <li>
                 <strong>Check Firebase Rules:</strong> Make sure your Firestore security rules allow read/write access.
-                <pre className="bg-gray-800 text-white p-2 rounded mt-1 text-xs">
+                <pre className="bg-gray-800 text-white p-2 rounded mt-1 text-xs overflow-auto">
 {`rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {

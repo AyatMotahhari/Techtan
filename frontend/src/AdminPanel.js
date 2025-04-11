@@ -143,7 +143,7 @@ const AdminPanel = () => {
     phone: '',
     github: '',
     linkedin: '',
-    image: '/api/placeholder/150/150' // Default placeholder
+    image: '%PUBLIC_URL%/placeholders/person.png' // Local placeholder instead of API
   });
   
   // Preview state for images
@@ -155,7 +155,7 @@ const AdminPanel = () => {
     title: '',
     description: '',
     link: '',
-    image: '/api/placeholder/300/200' // Default placeholder
+    image: '%PUBLIC_URL%/placeholders/project.png' // Local placeholder instead of API
   });
   
   // Form state for adding new services
@@ -312,7 +312,7 @@ const AdminPanel = () => {
         setEditingId(null);
         
         // Clear form
-        setNewTeamMember({ name: '', role: '', email: '', phone: '', github: '', linkedin: '', image: '/api/placeholder/150/150' });
+        setNewTeamMember({ name: '', role: '', email: '', phone: '', github: '', linkedin: '', image: '%PUBLIC_URL%/placeholders/person.png' });
         setTeamMemberImagePreview(null);
         if (teamMemberImageRef.current) {
           teamMemberImageRef.current.value = '';
@@ -324,7 +324,7 @@ const AdminPanel = () => {
         // Add new team member
         const addedMember = await teamMembersApi.add(newTeamMember);
         setTeamMembers([...teamMembers, addedMember]);
-        setNewTeamMember({ name: '', role: '', email: '', phone: '', github: '', linkedin: '', image: '/api/placeholder/150/150' });
+        setNewTeamMember({ name: '', role: '', email: '', phone: '', github: '', linkedin: '', image: '%PUBLIC_URL%/placeholders/person.png' });
         setTeamMemberImagePreview(null);
         if (teamMemberImageRef.current) {
           teamMemberImageRef.current.value = '';
@@ -354,7 +354,7 @@ const AdminPanel = () => {
         setEditingId(null);
         
         // Clear form
-        setNewProject({ title: '', description: '', link: '', image: '/api/placeholder/300/200' });
+        setNewProject({ title: '', description: '', link: '', image: '%PUBLIC_URL%/placeholders/project.png' });
         setProjectImagePreview(null);
         if (projectImageRef.current) {
           projectImageRef.current.value = '';
@@ -366,7 +366,7 @@ const AdminPanel = () => {
         // Add new project
         const addedProject = await projectsApi.add(newProject);
         setProjects([...projects, addedProject]);
-        setNewProject({ title: '', description: '', link: '', image: '/api/placeholder/300/200' });
+        setNewProject({ title: '', description: '', link: '', image: '%PUBLIC_URL%/placeholders/project.png' });
         setProjectImagePreview(null);
         if (projectImageRef.current) {
           projectImageRef.current.value = '';
@@ -419,9 +419,9 @@ const AdminPanel = () => {
     setEditingId(null);
     
     // Reset forms
-    setNewTeamMember({ name: '', role: '', email: '', phone: '', github: '', linkedin: '', image: '/api/placeholder/150/150' });
+    setNewTeamMember({ name: '', role: '', email: '', phone: '', github: '', linkedin: '', image: '%PUBLIC_URL%/placeholders/person.png' });
     setTeamMemberImagePreview(null);
-    setNewProject({ title: '', description: '', link: '', image: '/api/placeholder/300/200' });
+    setNewProject({ title: '', description: '', link: '', image: '%PUBLIC_URL%/placeholders/project.png' });
     setProjectImagePreview(null);
     setNewService({ title: '', price: '', description: '', features: [], deliveryTime: '3-5 days' });
     

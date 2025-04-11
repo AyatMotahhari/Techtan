@@ -17,8 +17,56 @@
     -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
     
-    <!-- Add polyfills for older browsers -->
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=default,es2015,es2016,es2017,fetch,Promise,Object.entries,Object.fromEntries,Array.prototype.includes"></script>
+    <!-- Script error detection - helps identify and recover from script loading failures -->
+    <script>
+      window.addEventListener('error', function(e) {
+        // Only handle script loading errors, not other JS errors
+        if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
+          console.warn('Resource failed to load:', e.target.src || e.target.href);
+          
+          // Mark the app as having resource loading issues
+          window.hasResourceLoadingIssues = true;
+          
+          // Let's check if it was a critical resource
+          if ((e.target.src && e.target.src.includes('polyfill.io')) || 
+              (e.target.href && e.target.href.includes('tailwindcss'))) {
+            console.warn('A critical resource failed to load. The app will try to continue but may have limited functionality.');
+          }
+        }
+      }, true);
+    </script>
+    
+    <!-- Inline critical polyfills rather than using external service -->
+    <script>
+      // Basic polyfills for critical features
+      if (typeof Object.entries !== 'function') {
+        Object.entries = function(obj) {
+          return Object.keys(obj).map(function(key) {
+            return [key, obj[key]];
+          });
+        };
+      }
+      
+      if (typeof Object.fromEntries !== 'function') {
+        Object.fromEntries = function(entries) {
+          return Array.from(entries).reduce(function(obj, [key, val]) {
+            obj[key] = val;
+            return obj;
+          }, {});
+        };
+      }
+      
+      if (!Array.prototype.includes) {
+        Array.prototype.includes = function(searchElement, fromIndex) {
+          return this.indexOf(searchElement, fromIndex) !== -1;
+        };
+      }
+      
+      // Simple Promise polyfill check
+      if (typeof Promise === 'undefined') {
+        console.warn('Promise is not supported in this browser. The application may not work correctly.');
+      }
+    </script>
     
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
@@ -35,11 +83,14 @@
     <script>
       // This script helps fix base URL issues when deployed to different environments
       (function() {
-        // Check if we're on GitHub Pages with a specific path
+        // Check if we're on GitHub Pages or other hosting with a specific path
         const basePathMatch = window.location.pathname.match(/^\/([^/]+)/);
         if (basePathMatch && basePathMatch[1] !== '') {
           const basePath = basePathMatch[1];
           document.write('<base href="/' + basePath + '/" />');
+          console.log('Base URL set to /' + basePath + '/');
+        } else {
+          console.log('Using default base URL (root path)');
         }
       })();
     </script>
@@ -61,6 +112,12 @@
             }
           }
           
+          // Fix for placeholder images that return 404
+          if (normalizedUrl.includes('/api/placeholder/')) {
+            // Replace with a reliable placeholder service or local placeholder
+            normalizedUrl = 'https://placehold.co/' + normalizedUrl.split('/api/placeholder/')[1];
+          }
+          
           // Log all API calls in debug mode
           if (window.location.search.includes('debug=true')) {
             console.log('XHR request:', method, normalizedUrl);
@@ -75,15 +132,32 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+    
+    <!-- Error recovery screen that only shows if there's a critical loading failure -->
+    <div id="error-recovery" style="display:none; padding: 20px; font-family: sans-serif;">
+      <h2>Having trouble loading the Techtan website?</h2>
+      <p>We detected some issues loading resources needed for the website to function properly.</p>
+      <p>Please try:</p>
+      <ul style="margin-top: 10px; margin-bottom: 20px;">
+        <li>Refreshing the page</li>
+        <li>Checking your internet connection</li>
+        <li>Trying a different browser</li>
+        <li>Disabling any content blockers or VPNs</li>
+      </ul>
+      <button onclick="window.location.reload()" style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        Try Again
+      </button>
+    </div>
+    
+    <script>
+      // Show error recovery screen if critical resources failed to load
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          if (window.hasResourceLoadingIssues && !document.getElementById('root').children.length) {
+            document.getElementById('error-recovery').style.display = 'block';
+          }
+        }, 5000); // Check after 5 seconds
+      });
+    </script>
   </body>
 </html>

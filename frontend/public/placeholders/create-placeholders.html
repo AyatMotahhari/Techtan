@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Placeholder Images</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 10px 0;
+        }
+        .placeholder-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .placeholder {
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background: #4a86e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        a {
+            display: block;
+            margin-top: 10px;
+            text-decoration: none;
+            color: #4a86e8;
+        }
+    </style>
+</head>
+<body>
+    <h1>Placeholder Image Generator</h1>
+    <p>This utility creates placeholder images for the Techtan website. Click the buttons to generate and save the images.</p>
+
+    <div class="placeholder-container">
+        <div class="placeholder">
+            <h3>Person Placeholder (150x150)</h3>
+            <canvas id="personCanvas" width="150" height="150"></canvas>
+            <button onclick="downloadImage('personCanvas', 'person.png')">Download</button>
+            <a id="personLink" download="person.png">Right-click and Save As</a>
+        </div>
+
+        <div class="placeholder">
+            <h3>Project Placeholder (300x200)</h3>
+            <canvas id="projectCanvas" width="300" height="200"></canvas>
+            <button onclick="downloadImage('projectCanvas', 'project.png')">Download</button>
+            <a id="projectLink" download="project.png">Right-click and Save As</a>
+        </div>
+    </div>
+
+    <script>
+        // Draw person placeholder
+        function drawPersonPlaceholder() {
+            const canvas = document.getElementById('personCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#e5e7eb';
+            ctx.fillRect(0, 0, 150, 150);
+            
+            // Person silhouette
+            ctx.fillStyle = '#9ca3af';
+            // Head
+            ctx.beginPath();
+            ctx.arc(75, 60, 30, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Body
+            ctx.beginPath();
+            ctx.moveTo(75, 90);
+            ctx.lineTo(40, 150);
+            ctx.lineTo(110, 150);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Text
+            ctx.fillStyle = '#4b5563';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('PERSON', 75, 40);
+            
+            updateLink('personCanvas', 'personLink');
+        }
+        
+        // Draw project placeholder
+        function drawProjectPlaceholder() {
+            const canvas = document.getElementById('projectCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#e5e7eb';
+            ctx.fillRect(0, 0, 300, 200);
+            
+            // Project icon
+            ctx.fillStyle = '#9ca3af';
+            ctx.fillRect(100, 60, 100, 80);
+            
+            // Window
+            ctx.fillStyle = '#d1d5db';
+            ctx.fillRect(115, 75, 70, 50);
+            
+            // Text
+            ctx.fillStyle = '#4b5563';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('PROJECT', 150, 50);
+            
+            updateLink('projectCanvas', 'projectLink');
+        }
+        
+        // Update download link
+        function updateLink(canvasId, linkId) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.getElementById(linkId);
+            link.href = canvas.toDataURL('image/png');
+        }
+        
+        // Download image function
+        function downloadImage(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const dataURL = canvas.toDataURL('image/png');
+            
+            const link = document.createElement('a');
+            link.href = dataURL;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Generate placeholders on page load
+        window.onload = function() {
+            drawPersonPlaceholder();
+            drawProjectPlaceholder();
+        };
+    </script>
+</body>
+</html> 

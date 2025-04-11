@@ -203,12 +203,15 @@ const TeamWebsite = () => {
   // Load data from API or localStorage on component mount
   useEffect(() => {
     const loadData = async () => {
-      setIsLoading(true);
-      setLoadError(null);
-      
       // Track whether we've shown data to the user
       let hasDisplayedData = false;
       console.log('Starting data loading process...');
+      
+      // Check if we're on a mobile device
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobileDevice) {
+        console.log('Mobile device detected - applying optimizations');
+      }
       
       // First try to load data from localStorage for immediate display
       try {
@@ -221,128 +224,101 @@ const TeamWebsite = () => {
         if (loadedTeamMembers) {
           const parsed = JSON.parse(loadedTeamMembers);
           if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-            console.log(`Loaded ${parsed.length} team members from localStorage (initial load)`);
             setTeamMembers(parsed);
             localDataAvailable = true;
+            hasDisplayedData = true;
+            console.log('Loaded team members from localStorage');
           }
         }
         
         if (loadedProjects) {
           const parsed = JSON.parse(loadedProjects);
           if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-            console.log(`Loaded ${parsed.length} projects from localStorage (initial load)`);
             setProjects(parsed);
             localDataAvailable = true;
+            hasDisplayedData = true;
+            console.log('Loaded projects from localStorage');
           }
         }
         
         if (loadedServices) {
           const parsed = JSON.parse(loadedServices);
           if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-            console.log(`Loaded ${parsed.length} services from localStorage (initial load)`);
             setServices(parsed);
             localDataAvailable = true;
+            hasDisplayedData = true;
+            console.log('Loaded services from localStorage');
           }
         }
         
         if (localDataAvailable) {
-          console.log('Using localStorage data for initial display while fetching from Firebase');
-          hasDisplayedData = true;
-        }
-      } catch (localStorageError) {
-        console.error('Error loading from localStorage (initial attempt):', localStorageError);
-      }
-      
-      // Then try to load fresher data from Firebase
-      try {
-        console.log('Attempting to load data from Firebase...');
-        
-        // Load team members
-        const teamMembersData = await teamMembersApi.getAll();
-        if (teamMembersData && Array.isArray(teamMembersData)) {
-          console.log(`Loaded ${teamMembersData.length} team members from Firebase`);
-          setTeamMembers(teamMembersData);
-          hasDisplayedData = true;
-        } else {
-          console.warn('Team members data from Firebase is not an array or is empty');
-        }
-        
-        // Load projects
-        const projectsData = await projectsApi.getAll();
-        if (projectsData && Array.isArray(projectsData)) {
-          console.log(`Loaded ${projectsData.length} projects from Firebase`);
-          setProjects(projectsData);
-          hasDisplayedData = true;
-        } else {
-          console.warn('Projects data from Firebase is not an array or is empty');
-        }
-        
-        // Load services
-        const servicesData = await servicesApi.getAll();
-        if (servicesData && Array.isArray(servicesData)) {
-          console.log(`Loaded ${servicesData.length} services from Firebase`);
-          setServices(servicesData);
-          hasDisplayedData = true;
-        } else {
-          console.warn('Services data from Firebase is not an array or is empty');
-        }
-        
-        // If we successfully loaded from Firebase, we're done
-        if (hasDisplayedData) {
-          console.log('Successfully loaded data from Firebase');
-          return;
+          console.log('Successfully loaded data from localStorage');
         }
       } catch (error) {
-        console.error('Error loading data from Firebase:', error);
-        setLoadError('Could not connect to the database');
+        console.error('Error loading from localStorage:', error);
       }
       
-      // If we get here and haven't displayed data yet, try localStorage again as a final fallback
-      if (!hasDisplayedData) {
-        console.warn('Failed to load data from Firebase, using localStorage as final fallback');
-        try {
-          // This is a deeper fallback attempt - we'll accept empty arrays
-          const loadedTeamMembers = localStorage.getItem('teamMembers');
-          const loadedProjects = localStorage.getItem('projects');
-          const loadedServices = localStorage.getItem('services');
-          
-          if (loadedTeamMembers) {
-            const parsed = JSON.parse(loadedTeamMembers);
-            console.log(`Loaded ${parsed.length} team members from localStorage (fallback)`);
-            setTeamMembers(parsed);
-          } else {
-            console.warn('No team members found in localStorage, using empty array');
-            setTeamMembers([]);
+      // Check for debug mode
+      const isDebugMode = window.location.search.includes('debug=true');
+      
+      // Now fetch from Firebase regardless of whether we loaded from localStorage
+      try {
+        setIsLoading(true);
+        
+        // Add a timeout to make sure we show loading state
+        let timeoutId = null;
+        if (!hasDisplayedData) {
+          timeoutId = setTimeout(() => {
+            if (!hasDisplayedData) {
+              setIsLoading(true);
+            }
+          }, 300);
+        }
+        
+        // Try to fetch team members
+        const teamMembersData = await teamMembersApi.getAll();
+        if (teamMembersData && Array.isArray(teamMembersData)) {
+          setTeamMembers(teamMembersData);
+          hasDisplayedData = true;
+          console.log('Successfully loaded team members from API');
+        }
+        
+        // Try to fetch projects
+        const projectsData = await projectsApi.getAll();
+        if (projectsData && Array.isArray(projectsData)) {
+          setProjects(projectsData);
+          hasDisplayedData = true;
+          console.log('Successfully loaded projects from API');
+        }
+        
+        // Try to fetch services
+        const servicesData = await servicesApi.getAll();
+        if (servicesData && Array.isArray(servicesData)) {
+          setServices(servicesData);
+          hasDisplayedData = true;
+          console.log('Successfully loaded services from API');
+        }
+        
+        // Clear any loading timeout
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error loading from API:', error);
+        setLoadError('Failed to load content. Please try again later.');
+        setIsLoading(false);
+        
+        // If we're on a mobile device and got an error, redirect to the diagnostic page
+        // if this is the first load and we don't have any data
+        if (isMobileDevice && !hasDisplayedData && window.location.hash === '#/') {
+          if (isDebugMode || window.confirm('Having trouble loading content? Would you like to run diagnostics?')) {
+            console.log('Redirecting to diagnostics page due to loading failure on mobile');
+            window.location.hash = '#/firebase-check';
           }
-          
-          if (loadedProjects) {
-            const parsed = JSON.parse(loadedProjects);
-            console.log(`Loaded ${parsed.length} projects from localStorage (fallback)`);
-            setProjects(parsed);
-          } else {
-            console.warn('No projects found in localStorage, using empty array');
-            setProjects([]);
-          }
-          
-          if (loadedServices) {
-            const parsed = JSON.parse(loadedServices);
-            console.log(`Loaded ${parsed.length} services from localStorage (fallback)`);
-            setServices(parsed);
-          } else {
-            console.warn('No services found in localStorage, using empty array');
-            setServices([]);
-          }
-        } catch (error) {
-          console.error('Error loading from localStorage (fallback attempt):', error);
-          // If everything fails, ensure we have empty arrays
-          setTeamMembers([]);
-          setProjects([]);
-          setServices([]);
         }
       }
-      
-      // Always turn off loading indicator when done
-      setIsLoading(false);
     };
     
     loadData();
