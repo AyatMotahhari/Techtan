@@ -876,7 +876,7 @@ const TeamWebsite = () => {
                       
                       {/* Service Price */}
                       <div className="flex items-center">
-                        <p className="text-white/90 text-lg font-bold">
+                        <p className="text-white/90 text-base font-bold">
                           {service.price}
                         </p>
                       </div>
@@ -965,7 +965,7 @@ const TeamWebsite = () => {
                         
                         {/* Service Price */}
                         <div className="flex items-center">
-                          <p className="text-white/90 text-lg font-bold">
+                          <p className="text-white/90 text-base font-bold">
                             {services[currentServiceSlide].price}
                           </p>
                         </div>

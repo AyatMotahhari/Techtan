@@ -939,7 +939,7 @@ const AdminPanel = () => {
                   <div className="absolute left-0 bottom-0 -mb-4 -ml-4 w-16 h-16 rounded-full bg-white opacity-10"></div>
                 
                   <h3 className="font-medium text-white mb-2">{service.title}</h3>
-                  <p className="text-white/90 font-bold">{service.price}</p>
+                  <p className="text-white/90 text-base font-bold">{service.price}</p>
                 </div>
                 <div className="p-4">
                   {service.description && <p className="text-sm text-gray-600 mb-2">{service.description}</p>}
