@@ -8,9 +8,51 @@ import {
   query, 
   where,
   serverTimestamp,
-  getDoc
+  getDoc,
+  setDoc
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
+
+// Flag to track if we've shown the Firebase error message
+let hasShownFirebaseError = false;
+
+// Utility function to handle Firebase errors with improved logging
+const handleFirebaseError = (operation, error, fallbackData = []) => {
+  console.error(`Firebase ${operation} operation failed:`, error);
+  
+  // Only show the error alert once per session to avoid spamming the user
+  if (!hasShownFirebaseError && typeof window !== 'undefined') {
+    hasShownFirebaseError = true;
+    console.warn('Firebase connectivity issue detected. Falling back to local data.');
+  }
+  
+  return fallbackData;
+};
+
+// Function to safely parse localStorage data with better error handling
+const getLocalData = (key, defaultValue = []) => {
+  try {
+    const stored = localStorage.getItem(key);
+    if (!stored) return defaultValue;
+    
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : defaultValue;
+  } catch (error) {
+    console.error(`Error parsing localStorage data for ${key}:`, error);
+    return defaultValue;
+  }
+};
+
+// Function to safely store data in localStorage
+const setLocalData = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch (error) {
+    console.error(`Error saving data to localStorage for ${key}:`, error);
+    return false;
+  }
+};
 
 // Function to test Firebase connectivity and provide detailed diagnostic info
 export const testFirebaseConnection = async () => {
@@ -36,13 +78,11 @@ export const testFirebaseConnection = async () => {
       return results;
     }
     
-    // Test 2: Try to reach Firebase domain
+    // Test 2: Try to reach Firestore directly
     try {
-      const firebaseReachable = await fetch('https://firestore.googleapis.com/v1', { 
-        method: 'HEAD',
-        mode: 'no-cors', // This is needed for CORS issues
-        cache: 'no-cache'
-      });
+      const testRef = collection(db, '_connection_test');
+      await getDocs(testRef);
+      
       results.firebaseReachable = true;
       results.tests.firebaseReachable = {
         passed: true,
@@ -53,7 +93,13 @@ export const testFirebaseConnection = async () => {
         passed: false,
         detail: `Firebase domain is unreachable: ${error.message}`
       };
-      results.error = 'Cannot reach Firebase servers. There might be a network issue or firewall blocking access.';
+      
+      if (error.code === 'permission-denied') {
+        results.error = 'Firebase permissions are denied. Please check your Firebase security rules.';
+      } else {
+        results.error = 'Cannot reach Firebase servers. There might be a network issue or firewall blocking access.';
+      }
+      
       results.errorDetails = error.toString();
       return results;
     }
@@ -83,12 +129,14 @@ export const testFirebaseConnection = async () => {
       // Create a test collection if not already there
       const testData = {
         timestamp: new Date().toISOString(),
-        test: true
+        test: true,
+        device: navigator.userAgent
       };
       
-      const testWriteRef = collection(db, '_connection_test');
-      const docRef = await addDoc(testWriteRef, testData);
-      await deleteDoc(docRef); // Clean up after test
+      const testDocId = `test_${Date.now()}`;
+      const testWriteRef = doc(db, '_connection_test', testDocId);
+      await setDoc(testWriteRef, testData);
+      await deleteDoc(testWriteRef); // Clean up after test
       
       results.firestoreWrite = true;
       results.tests.firestoreWrite = {
@@ -102,7 +150,12 @@ export const testFirebaseConnection = async () => {
       };
       
       // This is a critical failure if we can't write
-      results.error = 'Cannot write to Firestore. This might be due to permissions or connectivity issues.';
+      if (error.code === 'permission-denied') {
+        results.error = 'Cannot write to Firestore due to permissions. Please check your Firebase security rules.';
+      } else {
+        results.error = 'Cannot write to Firestore. This might be due to network connectivity issues.';
+      }
+      
       results.errorDetails = error.toString();
       return results;
     }
@@ -135,13 +188,10 @@ export const teamMembersApi = {
       });
       
       // Cache in localStorage as fallback
-      localStorage.setItem('teamMembers', JSON.stringify(teamMembers));
+      setLocalData('teamMembers', teamMembers);
       return teamMembers;
     } catch (error) {
-      console.error("Error fetching team members:", error);
-      // Fallback to localStorage
-      const fallback = localStorage.getItem('teamMembers');
-      return fallback ? JSON.parse(fallback) : [];
+      return handleFirebaseError('getAll teamMembers', error, getLocalData('teamMembers'));
     }
   },
   
@@ -156,16 +206,19 @@ export const teamMembersApi = {
       const newMember = { id: docRef.id, ...teamMember };
       
       // Update local cache
-      const current = JSON.parse(localStorage.getItem('teamMembers') || '[]');
-      localStorage.setItem('teamMembers', JSON.stringify([...current, newMember]));
+      const current = getLocalData('teamMembers');
+      setLocalData('teamMembers', [...current, newMember]);
       
       return newMember;
     } catch (error) {
-      console.error("Error adding team member:", error);
       // Fallback to localStorage
-      const current = JSON.parse(localStorage.getItem('teamMembers') || '[]');
+      console.error("Error adding team member:", error);
+      
+      const current = getLocalData('teamMembers');
       const newMember = { ...teamMember, id: Date.now().toString() };
-      localStorage.setItem('teamMembers', JSON.stringify([...current, newMember]));
+      const updated = [...current, newMember];
+      setLocalData('teamMembers', updated);
+      
       return newMember;
     }
   },
@@ -182,19 +235,17 @@ export const teamMembersApi = {
       const updatedMember = { id, ...teamMember };
       
       // Update local cache
-      const current = JSON.parse(localStorage.getItem('teamMembers') || '[]');
-      localStorage.setItem('teamMembers', JSON.stringify(
-        current.map(m => m.id === id ? updatedMember : m)
-      ));
+      const current = getLocalData('teamMembers');
+      const updatedCache = current.map(m => m.id === id ? updatedMember : m);
+      setLocalData('teamMembers', updatedCache);
       
       return updatedMember;
     } catch (error) {
       console.error("Error updating team member:", error);
       // Fallback to localStorage
-      const current = JSON.parse(localStorage.getItem('teamMembers') || '[]');
-      localStorage.setItem('teamMembers', JSON.stringify(
-        current.map(m => m.id === id ? { id, ...teamMember } : m)
-      ));
+      const current = getLocalData('teamMembers');
+      const updatedCache = current.map(m => m.id === id ? { id, ...teamMember } : m);
+      setLocalData('teamMembers', updatedCache);
       return { id, ...teamMember };
     }
   },
@@ -205,19 +256,17 @@ export const teamMembersApi = {
       await deleteDoc(doc(db, "teamMembers", id));
       
       // Update local cache
-      const current = JSON.parse(localStorage.getItem('teamMembers') || '[]');
-      localStorage.setItem('teamMembers', JSON.stringify(
-        current.filter(m => m.id !== id)
-      ));
+      const current = getLocalData('teamMembers');
+      const updatedCache = current.filter(m => m.id !== id);
+      setLocalData('teamMembers', updatedCache);
       
       return true;
     } catch (error) {
       console.error("Error deleting team member:", error);
       // Fallback to localStorage
-      const current = JSON.parse(localStorage.getItem('teamMembers') || '[]');
-      localStorage.setItem('teamMembers', JSON.stringify(
-        current.filter(m => m.id !== id)
-      ));
+      const current = getLocalData('teamMembers');
+      const updatedCache = current.filter(m => m.id !== id);
+      setLocalData('teamMembers', updatedCache);
       return true;
     }
   }

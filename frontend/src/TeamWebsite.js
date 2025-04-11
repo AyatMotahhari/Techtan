@@ -142,6 +142,10 @@ const TeamWebsite = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // State for mobile menu
   const [langDropdownOpen, setLangDropdownOpen] = useState(false); // State for language dropdown
   
+  // Add loading states to show feedback to users
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  
   // Mobile slider state
   const [currentProjectSlide, setCurrentProjectSlide] = useState(0);
   const [currentServiceSlide, setCurrentServiceSlide] = useState(0);
@@ -199,8 +203,57 @@ const TeamWebsite = () => {
   // Load data from API or localStorage on component mount
   useEffect(() => {
     const loadData = async () => {
-      let dataLoadedFromFirebase = true;
+      setIsLoading(true);
+      setLoadError(null);
       
+      // Track whether we've shown data to the user
+      let hasDisplayedData = false;
+      console.log('Starting data loading process...');
+      
+      // First try to load data from localStorage for immediate display
+      try {
+        const loadedTeamMembers = localStorage.getItem('teamMembers');
+        const loadedProjects = localStorage.getItem('projects');
+        const loadedServices = localStorage.getItem('services');
+        
+        let localDataAvailable = false;
+        
+        if (loadedTeamMembers) {
+          const parsed = JSON.parse(loadedTeamMembers);
+          if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+            console.log(`Loaded ${parsed.length} team members from localStorage (initial load)`);
+            setTeamMembers(parsed);
+            localDataAvailable = true;
+          }
+        }
+        
+        if (loadedProjects) {
+          const parsed = JSON.parse(loadedProjects);
+          if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+            console.log(`Loaded ${parsed.length} projects from localStorage (initial load)`);
+            setProjects(parsed);
+            localDataAvailable = true;
+          }
+        }
+        
+        if (loadedServices) {
+          const parsed = JSON.parse(loadedServices);
+          if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+            console.log(`Loaded ${parsed.length} services from localStorage (initial load)`);
+            setServices(parsed);
+            localDataAvailable = true;
+          }
+        }
+        
+        if (localDataAvailable) {
+          console.log('Using localStorage data for initial display while fetching from Firebase');
+          hasDisplayedData = true;
+        }
+      } catch (localStorageError) {
+        console.error('Error loading from localStorage (initial attempt):', localStorageError);
+      }
+      
+      // Then try to load fresher data from Firebase
       try {
         console.log('Attempting to load data from Firebase...');
         
@@ -209,8 +262,8 @@ const TeamWebsite = () => {
         if (teamMembersData && Array.isArray(teamMembersData)) {
           console.log(`Loaded ${teamMembersData.length} team members from Firebase`);
           setTeamMembers(teamMembersData);
+          hasDisplayedData = true;
         } else {
-          dataLoadedFromFirebase = false;
           console.warn('Team members data from Firebase is not an array or is empty');
         }
         
@@ -219,8 +272,8 @@ const TeamWebsite = () => {
         if (projectsData && Array.isArray(projectsData)) {
           console.log(`Loaded ${projectsData.length} projects from Firebase`);
           setProjects(projectsData);
+          hasDisplayedData = true;
         } else {
-          dataLoadedFromFirebase = false;
           console.warn('Projects data from Firebase is not an array or is empty');
         }
         
@@ -229,46 +282,67 @@ const TeamWebsite = () => {
         if (servicesData && Array.isArray(servicesData)) {
           console.log(`Loaded ${servicesData.length} services from Firebase`);
           setServices(servicesData);
+          hasDisplayedData = true;
         } else {
-          dataLoadedFromFirebase = false;
           console.warn('Services data from Firebase is not an array or is empty');
+        }
+        
+        // If we successfully loaded from Firebase, we're done
+        if (hasDisplayedData) {
+          console.log('Successfully loaded data from Firebase');
+          return;
         }
       } catch (error) {
         console.error('Error loading data from Firebase:', error);
-        dataLoadedFromFirebase = false;
+        setLoadError('Could not connect to the database');
       }
       
-      // If any data failed to load from Firebase, try to load from localStorage
-      if (!dataLoadedFromFirebase) {
-        console.log('Falling back to localStorage for some or all data');
-        
+      // If we get here and haven't displayed data yet, try localStorage again as a final fallback
+      if (!hasDisplayedData) {
+        console.warn('Failed to load data from Firebase, using localStorage as final fallback');
         try {
-          // Fallback to localStorage
+          // This is a deeper fallback attempt - we'll accept empty arrays
           const loadedTeamMembers = localStorage.getItem('teamMembers');
           const loadedProjects = localStorage.getItem('projects');
           const loadedServices = localStorage.getItem('services');
           
           if (loadedTeamMembers) {
             const parsed = JSON.parse(loadedTeamMembers);
-            console.log(`Loaded ${parsed.length} team members from localStorage`);
+            console.log(`Loaded ${parsed.length} team members from localStorage (fallback)`);
             setTeamMembers(parsed);
+          } else {
+            console.warn('No team members found in localStorage, using empty array');
+            setTeamMembers([]);
           }
           
           if (loadedProjects) {
             const parsed = JSON.parse(loadedProjects);
-            console.log(`Loaded ${parsed.length} projects from localStorage`);
+            console.log(`Loaded ${parsed.length} projects from localStorage (fallback)`);
             setProjects(parsed);
+          } else {
+            console.warn('No projects found in localStorage, using empty array');
+            setProjects([]);
           }
           
           if (loadedServices) {
             const parsed = JSON.parse(loadedServices);
-            console.log(`Loaded ${parsed.length} services from localStorage`);
+            console.log(`Loaded ${parsed.length} services from localStorage (fallback)`);
             setServices(parsed);
+          } else {
+            console.warn('No services found in localStorage, using empty array');
+            setServices([]);
           }
-        } catch (localStorageError) {
-          console.error('Error loading from localStorage:', localStorageError);
+        } catch (error) {
+          console.error('Error loading from localStorage (fallback attempt):', error);
+          // If everything fails, ensure we have empty arrays
+          setTeamMembers([]);
+          setProjects([]);
+          setServices([]);
         }
       }
+      
+      // Always turn off loading indicator when done
+      setIsLoading(false);
     };
     
     loadData();
@@ -582,6 +656,31 @@ const TeamWebsite = () => {
     };
   }, []);
 
+  // Add this empty state renderer
+  const renderEmptyState = (type) => {
+    return (
+      <div className="text-center py-8">
+        {isLoading ? (
+          <div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-500">{t('common', 'loading')}</p>
+          </div>
+        ) : loadError ? (
+          <div>
+            <p className="text-red-500 mb-2">{loadError}</p>
+            <p className="text-gray-500">{t('common', 'tryAgain')}</p>
+          </div>
+        ) : (
+          <p className="text-gray-500">
+            {type === 'team' && t('team', 'noMembers')}
+            {type === 'projects' && t('projects', 'noProjects')}
+            {type === 'services' && t('services', 'noServices')}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className={`min-h-screen bg-white ${language !== 'en' ? 'font-sans' : ''}`}>
       {/* Header with Logo - Sticky */}
@@ -847,7 +946,7 @@ const TeamWebsite = () => {
               ))}
             </div>
           ) : (
-            <p className="text-center text-gray-500">{t('team', 'noTeam')}</p>
+            renderEmptyState('team')
           )}
         </div>
       </section>
@@ -955,7 +1054,7 @@ const TeamWebsite = () => {
               </div>
             </>
           ) : (
-            <p className="text-center text-gray-500">{t('projects', 'noProjects')}</p>
+            renderEmptyState('projects')
           )}
         </div>
       </section>
@@ -1365,7 +1464,7 @@ const TeamWebsite = () => {
               </div>
             </>
           ) : (
-            <p className="text-center text-gray-500">{t('services', 'noServices')}</p>
+            renderEmptyState('services')
           )}
         </div>
       </section>

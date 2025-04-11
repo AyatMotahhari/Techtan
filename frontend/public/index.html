@@ -16,6 +16,10 @@
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- Add polyfills for older browsers -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=default,es2015,es2016,es2017,fetch,Promise,Object.entries,Object.fromEntries,Array.prototype.includes"></script>
+    
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
@@ -38,6 +42,34 @@
           document.write('<base href="/' + basePath + '/" />');
         }
       })();
+    </script>
+    
+    <!-- Add cross-domain access handling -->
+    <script>
+      // Handle cross-domain issues
+      if (typeof XMLHttpRequest !== 'undefined') {
+        const originalOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+          // Normalize the URL to handle relative paths correctly
+          let normalizedUrl = url;
+          if (!normalizedUrl.match(/^https?:\/\//)) {
+            if (normalizedUrl.startsWith('/')) {
+              normalizedUrl = window.location.origin + normalizedUrl;
+            } else {
+              const base = document.querySelector('base')?.href || window.location.origin + '/';
+              normalizedUrl = new URL(normalizedUrl, base).href;
+            }
+          }
+          
+          // Log all API calls in debug mode
+          if (window.location.search.includes('debug=true')) {
+            console.log('XHR request:', method, normalizedUrl);
+          }
+          
+          // Call the original open method with the normalized URL
+          return originalOpen.call(this, method, normalizedUrl, async, user, password);
+        };
+      }
     </script>
   </head>
   <body>
