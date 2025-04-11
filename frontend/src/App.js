@@ -2,6 +2,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import TeamWebsite from './TeamWebsite';
 import Login from './Login';
 import AdminPanel from './AdminPanel';
+import FirebaseCheck from './FirebaseCheck';
 
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -22,6 +23,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/firebase-check" element={<FirebaseCheck />} />
       </Routes>
     </Router>
   );

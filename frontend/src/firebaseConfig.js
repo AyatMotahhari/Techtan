@@ -19,21 +19,41 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firestore with settings for offline support
 export const db = getFirestore(app);
 
-// Try to enable offline persistence
+// Configure Firestore settings - this fixes the multi-tab persistence issue
 try {
-  enableIndexedDbPersistence(db, {
-    cacheSizeBytes: CACHE_SIZE_UNLIMITED
-  }).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      // Multiple tabs open, persistence can only be enabled in one tab at a time
-      console.warn('Firestore persistence failed to enable: Multiple tabs open');
-    } else if (err.code === 'unimplemented') {
-      // The current browser doesn't support offline persistence
-      console.warn('Firestore persistence is not available in this browser');
-    } else {
-      console.error('Error enabling Firestore persistence:', err);
-    }
-  });
+  // Using a simpler approach to persistence to avoid the multi-tab issue
+  // The error occurs because multiple tabs are trying to access the same IndexedDB database
+  const urlParams = new URLSearchParams(window.location.search);
+  const persistenceParam = urlParams.get('persistence');
+  
+  // Only enable persistence if explicitly requested or if this is the admin panel
+  const shouldEnablePersistence = 
+    persistenceParam === 'true' || 
+    window.location.pathname.includes('/admin');
+  
+  if (shouldEnablePersistence) {
+    console.log('Enabling Firestore persistence for this session');
+    
+    enableIndexedDbPersistence(db, {
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+      // This forces the current tab to become the owner of the persistence layer
+      // which prevents the multi-tab conflict error
+      experimentalForceOwningTab: true
+    }).then(() => {
+      console.log('✅ Firestore persistence enabled successfully');
+    }).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Firestore persistence failed to enable: Multiple tabs open');
+        console.log('The application will still work but caching will be disabled');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Firestore persistence is not available in this browser');
+      } else {
+        console.error('Error enabling Firestore persistence:', err);
+      }
+    });
+  } else {
+    console.log('Firestore persistence not enabled for this session');
+  }
 } catch (error) {
   console.error('Error setting up Firestore persistence:', error);
 }
@@ -48,22 +68,27 @@ if (process.env.NODE_ENV === 'development' && window.location.hostname === 'loca
   }
 }
 
-// Export connection status tracker
+// Export connection status tracker with improved reliability
 export const checkFirebaseConnection = () => {
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
-      resolve(false); // Connection failed
+      resolve(false); // Connection failed after timeout
     }, 5000);
     
-    // Try to get a timestamp from Firebase to test connectivity
-    fetch(`https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents`)
+    // Try connecting to Firestore API directly
+    fetch(`https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents`, {
+      method: 'HEAD',
+      mode: 'no-cors', // This helps avoid CORS issues
+      cache: 'no-cache'
+    })
       .then(() => {
         clearTimeout(timeout);
         resolve(true); // Connection successful
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Firebase connection check failed:', error);
         clearTimeout(timeout);
-        resolve(false); // Connection failed
+        resolve(false); // Connection failed with error
       });
   });
 };
