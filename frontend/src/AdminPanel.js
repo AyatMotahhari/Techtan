@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { teamMembersApi, projectsApi, servicesApi, contactApi } from './firebaseApi';
+import { migrateLocalStorageToFirebase } from './migrateToFirebase';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -49,77 +51,72 @@ const AdminPanel = () => {
     }
   }, [location]);
   
-  // Load data from localStorage on component mount
+  // Load data from API or localStorage on component mount
   useEffect(() => {
-    const loadedTeamMembers = localStorage.getItem('teamMembers');
-    const loadedProjects = localStorage.getItem('projects');
-    const loadedServices = localStorage.getItem('services');
-    const loadedContactSubmissions = localStorage.getItem('contactSubmissions');
-    
-    if (loadedTeamMembers) setTeamMembers(JSON.parse(loadedTeamMembers));
-    if (loadedProjects) setProjects(JSON.parse(loadedProjects));
-    if (loadedServices) setServices(JSON.parse(loadedServices));
-    
-    if (loadedContactSubmissions) {
+    const loadData = async () => {
       try {
-        const submissions = JSON.parse(loadedContactSubmissions);
-        console.log('Loaded contact submissions:', submissions);
+        // Load team members
+        const teamMembersData = await teamMembersApi.getAll();
+        if (teamMembersData && Array.isArray(teamMembersData)) {
+          setTeamMembers(teamMembersData);
+        }
         
-        // Only update state if submissions is an array and not empty
-        if (Array.isArray(submissions) && submissions.length > 0) {
-          setContactSubmissions(submissions);
+        // Load projects
+        const projectsData = await projectsApi.getAll();
+        if (projectsData && Array.isArray(projectsData)) {
+          setProjects(projectsData);
+        }
+        
+        // Load services
+        const servicesData = await servicesApi.getAll();
+        if (servicesData && Array.isArray(servicesData)) {
+          setServices(servicesData);
+        }
+        
+        // Load contact submissions
+        const contactData = await contactApi.getAll();
+        if (contactData && Array.isArray(contactData)) {
+          console.log('Loaded contact submissions:', contactData);
+          setContactSubmissions(contactData);
           
           // Check if there are any new messages
-          const hasNew = submissions.some(submission => submission.isNew);
+          const hasNew = contactData.some(submission => submission.isNew);
           setHasNewMessages(hasNew);
-        } else {
-          console.log('No valid contact submissions found in localStorage');
         }
       } catch (error) {
-        console.error('Error parsing contact submissions:', error);
-      }
-    } else {
-      console.log('No contact submissions found in localStorage');
-    }
-  }, []);
-  
-  // Save data to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('teamMembers', JSON.stringify(teamMembers));
-  }, [teamMembers]);
-  
-  useEffect(() => {
-    localStorage.setItem('projects', JSON.stringify(projects));
-  }, [projects]);
-  
-  useEffect(() => {
-    localStorage.setItem('services', JSON.stringify(services));
-  }, [services]);
-  
-  // Only save contactSubmissions to localStorage if it's not empty
-  useEffect(() => {
-    if (contactSubmissions && contactSubmissions.length > 0) {
-      console.log('Saving contact submissions:', contactSubmissions);
-      localStorage.setItem('contactSubmissions', JSON.stringify(contactSubmissions));
-    } else {
-      // Don't overwrite existing submissions with an empty array
-      const existingSubmissions = localStorage.getItem('contactSubmissions');
-      if (existingSubmissions) {
-        try {
-          const parsedSubmissions = JSON.parse(existingSubmissions);
-          if (Array.isArray(parsedSubmissions) && parsedSubmissions.length > 0) {
-            console.log('Keeping existing submissions in localStorage:', parsedSubmissions);
-            // Update state with existing submissions from localStorage
-            setContactSubmissions(parsedSubmissions);
-            return;
+        console.error('Error loading data:', error);
+        
+        // Fallback to localStorage if API fails
+        const loadedTeamMembers = localStorage.getItem('teamMembers');
+        const loadedProjects = localStorage.getItem('projects');
+        const loadedServices = localStorage.getItem('services');
+        const loadedContactSubmissions = localStorage.getItem('contactSubmissions');
+        
+        if (loadedTeamMembers) setTeamMembers(JSON.parse(loadedTeamMembers));
+        if (loadedProjects) setProjects(JSON.parse(loadedProjects));
+        if (loadedServices) setServices(JSON.parse(loadedServices));
+        
+        if (loadedContactSubmissions) {
+          try {
+            const submissions = JSON.parse(loadedContactSubmissions);
+            console.log('Loaded contact submissions from localStorage:', submissions);
+            
+            if (Array.isArray(submissions) && submissions.length > 0) {
+              setContactSubmissions(submissions);
+              
+              // Check if there are any new messages
+              const hasNew = submissions.some(submission => submission.isNew);
+              setHasNewMessages(hasNew);
+            }
+          } catch (error) {
+            console.error('Error parsing contact submissions:', error);
           }
-        } catch (error) {
-          console.error('Error parsing existing submissions:', error);
         }
       }
-      console.log('No contact submissions to save');
-    }
-  }, [contactSubmissions]);
+    };
+    
+    loadData();
+  }, []);
   
   // Load item for editing
   useEffect(() => {
@@ -184,26 +181,43 @@ const AdminPanel = () => {
   });
   
   // Mark a contact submission as read
-  const markAsRead = (id) => {
-    setContactSubmissions(contactSubmissions.map(submission => 
-      submission.id === id ? { ...submission, isNew: false } : submission
-    ));
-    
-    // Check if there are still any new messages
-    const stillHasNew = contactSubmissions.some(submission => 
-      submission.id !== id && submission.isNew
-    );
-    setHasNewMessages(stillHasNew);
+  const markAsRead = async (id) => {
+    try {
+      await contactApi.markAsRead(id);
+      setContactSubmissions(contactSubmissions.map(submission => 
+        submission.id === id ? { ...submission, isNew: false } : submission
+      ));
+      
+      // Check if there are still any new messages
+      const stillHasNew = contactSubmissions.some(submission => 
+        submission.id !== id && submission.isNew
+      );
+      setHasNewMessages(stillHasNew);
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+      // Update local state anyway
+      setContactSubmissions(contactSubmissions.map(submission => 
+        submission.id === id ? { ...submission, isNew: false } : submission
+      ));
+    }
   };
   
   // Delete a contact submission
-  const deleteSubmission = (id) => {
-    const updatedSubmissions = contactSubmissions.filter(submission => submission.id !== id);
-    setContactSubmissions(updatedSubmissions);
-    
-    // Check if there are still any new messages
-    const stillHasNew = updatedSubmissions.some(submission => submission.isNew);
-    setHasNewMessages(stillHasNew);
+  const deleteSubmission = async (id) => {
+    try {
+      await contactApi.delete(id);
+      const updatedSubmissions = contactSubmissions.filter(submission => submission.id !== id);
+      setContactSubmissions(updatedSubmissions);
+      
+      // Check if there are still any new messages
+      const stillHasNew = updatedSubmissions.some(submission => submission.isNew);
+      setHasNewMessages(stillHasNew);
+    } catch (error) {
+      console.error('Error deleting submission:', error);
+      // Update local state anyway
+      const updatedSubmissions = contactSubmissions.filter(submission => submission.id !== id);
+      setContactSubmissions(updatedSubmissions);
+    }
   };
   
   // When clicking on the messages tab, mark all as read
@@ -211,11 +225,23 @@ const AdminPanel = () => {
     setActiveTab('messages');
     // Only mark all as read if there are new messages
     if (hasNewMessages) {
+      // Mark all as read in local state
       setContactSubmissions(contactSubmissions.map(submission => ({
         ...submission,
         isNew: false
       })));
       setHasNewMessages(false);
+      
+      // Try to update each submission async
+      contactSubmissions.forEach(async (submission) => {
+        if (submission.isNew) {
+          try {
+            await contactApi.markAsRead(submission.id);
+          } catch (error) {
+            console.error(`Error marking message ${submission.id} as read:`, error);
+          }
+        }
+      });
     }
   };
   
@@ -282,102 +308,120 @@ const AdminPanel = () => {
   };
   
   // Add or update a team member
-  const addTeamMember = (e) => {
+  const addTeamMember = async (e) => {
     e.preventDefault();
     
-    if (isEditing && editingType === 'team') {
-      // Update existing team member
-      setTeamMembers(teamMembers.map(member => 
-        member.id === editingId ? { ...newTeamMember } : member
-      ));
-      
-      // Reset editing state
-      setIsEditing(false);
-      setEditingType(null);
-      setEditingId(null);
-      
-      // Clear form
-      setNewTeamMember({ name: '', role: '', email: '', phone: '', github: '', linkedin: '', image: '/api/placeholder/150/150' });
-      setTeamMemberImagePreview(null);
-      if (teamMemberImageRef.current) {
-        teamMemberImageRef.current.value = '';
+    try {
+      if (isEditing && editingType === 'team') {
+        // Update existing team member
+        const updatedMember = await teamMembersApi.update(editingId, newTeamMember);
+        setTeamMembers(teamMembers.map(member => 
+          member.id === editingId ? updatedMember : member
+        ));
+        
+        // Reset editing state
+        setIsEditing(false);
+        setEditingType(null);
+        setEditingId(null);
+        
+        // Clear form
+        setNewTeamMember({ name: '', role: '', email: '', phone: '', github: '', linkedin: '', image: '/api/placeholder/150/150' });
+        setTeamMemberImagePreview(null);
+        if (teamMemberImageRef.current) {
+          teamMemberImageRef.current.value = '';
+        }
+        
+        // Remove query parameters
+        navigate('/admin', { replace: true });
+      } else {
+        // Add new team member
+        const addedMember = await teamMembersApi.add(newTeamMember);
+        setTeamMembers([...teamMembers, addedMember]);
+        setNewTeamMember({ name: '', role: '', email: '', phone: '', github: '', linkedin: '', image: '/api/placeholder/150/150' });
+        setTeamMemberImagePreview(null);
+        if (teamMemberImageRef.current) {
+          teamMemberImageRef.current.value = '';
+        }
       }
-      
-      // Remove query parameters
-      navigate('/admin', { replace: true });
-    } else {
-      // Add new team member
-      const id = teamMembers.length > 0 ? Math.max(...teamMembers.map(m => m.id)) + 1 : 1;
-      setTeamMembers([...teamMembers, { id, ...newTeamMember }]);
-      setNewTeamMember({ name: '', role: '', email: '', phone: '', github: '', linkedin: '', image: '/api/placeholder/150/150' });
-      setTeamMemberImagePreview(null);
-      if (teamMemberImageRef.current) {
-        teamMemberImageRef.current.value = '';
-      }
+    } catch (error) {
+      console.error('Error saving team member:', error);
+      alert('There was a problem saving the team member. Changes were saved locally but may not be available on other devices.');
     }
   };
   
   // Add or update a project
-  const addProject = (e) => {
+  const addProject = async (e) => {
     e.preventDefault();
     
-    if (isEditing && editingType === 'project') {
-      // Update existing project
-      setProjects(projects.map(project => 
-        project.id === editingId ? { ...newProject } : project
-      ));
-      
-      // Reset editing state
-      setIsEditing(false);
-      setEditingType(null);
-      setEditingId(null);
-      
-      // Clear form
-      setNewProject({ title: '', description: '', link: '', image: '/api/placeholder/300/200' });
-      setProjectImagePreview(null);
-      if (projectImageRef.current) {
-        projectImageRef.current.value = '';
+    try {
+      if (isEditing && editingType === 'project') {
+        // Update existing project
+        const updatedProject = await projectsApi.update(editingId, newProject);
+        setProjects(projects.map(project => 
+          project.id === editingId ? updatedProject : project
+        ));
+        
+        // Reset editing state
+        setIsEditing(false);
+        setEditingType(null);
+        setEditingId(null);
+        
+        // Clear form
+        setNewProject({ title: '', description: '', link: '', image: '/api/placeholder/300/200' });
+        setProjectImagePreview(null);
+        if (projectImageRef.current) {
+          projectImageRef.current.value = '';
+        }
+        
+        // Remove query parameters
+        navigate('/admin', { replace: true });
+      } else {
+        // Add new project
+        const addedProject = await projectsApi.add(newProject);
+        setProjects([...projects, addedProject]);
+        setNewProject({ title: '', description: '', link: '', image: '/api/placeholder/300/200' });
+        setProjectImagePreview(null);
+        if (projectImageRef.current) {
+          projectImageRef.current.value = '';
+        }
       }
-      
-      // Remove query parameters
-      navigate('/admin', { replace: true });
-    } else {
-      // Add new project
-      const id = projects.length > 0 ? Math.max(...projects.map(p => p.id)) + 1 : 1;
-      setProjects([...projects, { id, ...newProject }]);
-      setNewProject({ title: '', description: '', link: '', image: '/api/placeholder/300/200' });
-      setProjectImagePreview(null);
-      if (projectImageRef.current) {
-        projectImageRef.current.value = '';
-      }
+    } catch (error) {
+      console.error('Error saving project:', error);
+      alert('There was a problem saving the project. Changes were saved locally but may not be available on other devices.');
     }
   };
   
   // Add or update a service
-  const addService = (e) => {
+  const addService = async (e) => {
     e.preventDefault();
     
-    if (isEditing && editingType === 'service') {
-      // Update existing service
-      setServices(services.map(service => 
-        service.id === editingId ? { ...newService } : service
-      ));
-      
-      // Reset editing state
-      setIsEditing(false);
-      setEditingType(null);
-      setEditingId(null);
-      
-      // Clear form
-      setNewService({ title: '', price: '', description: '', features: [], deliveryTime: '3-5 days' });
-      
-      // Remove query parameters
-      navigate('/admin', { replace: true });
-    } else {
-      // Add new service
-      const id = services.length > 0 ? Math.max(...services.map(s => s.id)) + 1 : 1;
-      setServices([...services, { id, ...newService }]);
-      setNewService({ title: '', price: '', description: '', features: [], deliveryTime: '3-5 days' });
+    try {
+      if (isEditing && editingType === 'service') {
+        // Update existing service
+        const updatedService = await servicesApi.update(editingId, newService);
+        setServices(services.map(service => 
+          service.id === editingId ? updatedService : service
+        ));
+        
+        // Reset editing state
+        setIsEditing(false);
+        setEditingType(null);
+        setEditingId(null);
+        
+        // Clear form
+        setNewService({ title: '', price: '', description: '', features: [], deliveryTime: '3-5 days' });
+        
+        // Remove query parameters
+        navigate('/admin', { replace: true });
+      } else {
+        // Add new service
+        const addedService = await servicesApi.add(newService);
+        setServices([...services, addedService]);
+        setNewService({ title: '', price: '', description: '', features: [], deliveryTime: '3-5 days' });
+      }
+    } catch (error) {
+      console.error('Error saving service:', error);
+      alert('There was a problem saving the service. Changes were saved locally but may not be available on other devices.');
     }
   };
   
@@ -399,18 +443,36 @@ const AdminPanel = () => {
   };
   
   // Remove a team member
-  const removeTeamMember = (id) => {
-    setTeamMembers(teamMembers.filter(member => member.id !== id));
+  const removeTeamMember = async (id) => {
+    try {
+      await teamMembersApi.delete(id);
+      setTeamMembers(teamMembers.filter(member => member.id !== id));
+    } catch (error) {
+      console.error('Error removing team member:', error);
+      alert('There was a problem removing the team member. Changes were made locally but may not be reflected on other devices.');
+    }
   };
   
   // Remove a project
-  const removeProject = (id) => {
-    setProjects(projects.filter(project => project.id !== id));
+  const removeProject = async (id) => {
+    try {
+      await projectsApi.delete(id);
+      setProjects(projects.filter(project => project.id !== id));
+    } catch (error) {
+      console.error('Error removing project:', error);
+      alert('There was a problem removing the project. Changes were made locally but may not be reflected on other devices.');
+    }
   };
   
   // Remove a service
-  const removeService = (id) => {
-    setServices(services.filter(service => service.id !== id));
+  const removeService = async (id) => {
+    try {
+      await servicesApi.delete(id);
+      setServices(services.filter(service => service.id !== id));
+    } catch (error) {
+      console.error('Error removing service:', error);
+      alert('There was a problem removing the service. Changes were made locally but may not be reflected on other devices.');
+    }
   };
   
   // Logout function
@@ -419,39 +481,73 @@ const AdminPanel = () => {
     navigate('/login');
   };
 
-  // Debug function to fix contact submissions
-  const debugFixContactSubmissions = () => {
+  // Debug function to load contact submissions from the API
+  const debugFixContactSubmissions = async () => {
     try {
-      // Get current submissions from localStorage
-      const submissionsStr = localStorage.getItem('contactSubmissions');
-      console.log('Current localStorage value:', submissionsStr);
-      
-      if (submissionsStr) {
-        // Parse the submissions
-        const submissions = JSON.parse(submissionsStr);
-        console.log('Parsed submissions:', submissions);
+      const contactData = await contactApi.getAll();
+      if (contactData && Array.isArray(contactData)) {
+        console.log('Loaded contact submissions from API:', contactData);
+        setContactSubmissions(contactData);
         
-        if (Array.isArray(submissions)) {
-          // Update state with the submissions from localStorage
-          setContactSubmissions(submissions);
-          
-          // Check if there are any new messages
-          const hasNew = submissions.some(submission => submission.isNew);
-          setHasNewMessages(hasNew);
-          
-          console.log('Contact submissions fixed:', submissions);
-          alert(`Successfully loaded ${submissions.length} contact submissions from localStorage.`);
-        } else {
-          console.error('Submissions is not an array:', submissions);
-          alert('Error: Submissions in localStorage is not an array.');
-        }
+        // Check if there are any new messages
+        const hasNew = contactData.some(submission => submission.isNew);
+        setHasNewMessages(hasNew);
+        
+        alert(`Successfully loaded ${contactData.length} contact submissions from the server.`);
       } else {
-        console.log('No submissions found in localStorage');
-        alert('No contact submissions found in localStorage.');
+        console.error('API did not return an array:', contactData);
+        alert('Error: API did not return a valid array of submissions.');
+        
+        // Fall back to localStorage
+        const submissionsStr = localStorage.getItem('contactSubmissions');
+        if (submissionsStr) {
+          const submissions = JSON.parse(submissionsStr);
+          if (Array.isArray(submissions)) {
+            setContactSubmissions(submissions);
+            alert(`Loaded ${submissions.length} submissions from localStorage as fallback.`);
+          }
+        }
       }
     } catch (error) {
-      console.error('Error fixing contact submissions:', error);
-      alert(`Error fixing contact submissions: ${error.message}`);
+      console.error('Error loading contact submissions from API:', error);
+      alert(`Error loading from API: ${error.message}. Attempting localStorage fallback...`);
+      
+      // Fall back to localStorage
+      try {
+        const submissionsStr = localStorage.getItem('contactSubmissions');
+        if (submissionsStr) {
+          const submissions = JSON.parse(submissionsStr);
+          if (Array.isArray(submissions)) {
+            setContactSubmissions(submissions);
+            alert(`Loaded ${submissions.length} submissions from localStorage as fallback.`);
+          }
+        } else {
+          alert('No contact submissions found in localStorage either.');
+        }
+      } catch (localError) {
+        console.error('Error with localStorage fallback:', localError);
+        alert(`Error with localStorage fallback: ${localError.message}`);
+      }
+    }
+  };
+
+  // Add this function to handle migration
+  const handleMigration = async () => {
+    if (window.confirm('Are you sure you want to migrate all local data to Firebase? This might duplicate data if already migrated.')) {
+      try {
+        const results = await migrateLocalStorageToFirebase();
+        alert(`Migration complete!\n
+Team Members: ${results.teamMembers.success}/${results.teamMembers.total} migrated\n
+Projects: ${results.projects.success}/${results.projects.total} migrated\n
+Services: ${results.services.success}/${results.services.total} migrated\n
+Contact Submissions: ${results.contactSubmissions.success}/${results.contactSubmissions.total} migrated`);
+        
+        // Refresh data from Firebase after migration
+        await loadData();
+      } catch (error) {
+        console.error('Error during migration:', error);
+        alert('Error during migration. Check console for details.');
+      }
     }
   };
 
@@ -1047,7 +1143,15 @@ const AdminPanel = () => {
       )}
       
       <div className="mt-8 border-t pt-4 flex justify-between">
-        <a href="/" className="text-blue-600 hover:underline">Back to Website</a>
+        <div>
+          <a href="/" className="text-blue-600 hover:underline mr-4">Back to Website</a>
+          <button 
+            onClick={handleMigration}
+            className="bg-amber-500 text-white px-3 py-1 rounded hover:bg-amber-600 text-sm"
+          >
+            Migrate to Firebase
+          </button>
+        </div>
         <button 
           onClick={handleLogout}
           className="text-red-600 hover:underline"

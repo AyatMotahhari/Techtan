@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import emailjs from '@emailjs/browser';
 import { Link } from 'react-router-dom';
+import { teamMembersApi, projectsApi, servicesApi, contactApi } from './firebaseApi';
 
 // Language translations
 const translations = {
@@ -195,15 +196,42 @@ const TeamWebsite = () => {
     }
   }, []);
   
-  // Load data from localStorage on component mount
+  // Load data from API or localStorage on component mount
   useEffect(() => {
-    const loadedTeamMembers = localStorage.getItem('teamMembers');
-    const loadedProjects = localStorage.getItem('projects');
-    const loadedServices = localStorage.getItem('services');
+    const loadData = async () => {
+      try {
+        // Load team members
+        const teamMembersData = await teamMembersApi.getAll();
+        if (teamMembersData && Array.isArray(teamMembersData)) {
+          setTeamMembers(teamMembersData);
+        }
+        
+        // Load projects
+        const projectsData = await projectsApi.getAll();
+        if (projectsData && Array.isArray(projectsData)) {
+          setProjects(projectsData);
+        }
+        
+        // Load services
+        const servicesData = await servicesApi.getAll();
+        if (servicesData && Array.isArray(servicesData)) {
+          setServices(servicesData);
+        }
+      } catch (error) {
+        console.error('Error loading data from API:', error);
+        
+        // Fallback to localStorage
+        const loadedTeamMembers = localStorage.getItem('teamMembers');
+        const loadedProjects = localStorage.getItem('projects');
+        const loadedServices = localStorage.getItem('services');
+        
+        if (loadedTeamMembers) setTeamMembers(JSON.parse(loadedTeamMembers));
+        if (loadedProjects) setProjects(JSON.parse(loadedProjects));
+        if (loadedServices) setServices(JSON.parse(loadedServices));
+      }
+    };
     
-    if (loadedTeamMembers) setTeamMembers(JSON.parse(loadedTeamMembers));
-    if (loadedProjects) setProjects(JSON.parse(loadedProjects));
-    if (loadedServices) setServices(JSON.parse(loadedServices));
+    loadData();
   }, []);
 
   // Intersection Observer to detect which section is currently in view
@@ -250,7 +278,7 @@ const TeamWebsite = () => {
     });
   };
 
-  const handleFormSubmit = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     
@@ -262,34 +290,10 @@ const TeamWebsite = () => {
       isNew: true // Flag for notification in CMS
     };
     
-    // Direct localStorage manipulation to ensure data is saved correctly
     try {
-      // Get current submissions from localStorage
-      const currentSubmissionsStr = localStorage.getItem('contactSubmissions');
-      let currentSubmissions = [];
-      
-      // Parse existing submissions if they exist
-      if (currentSubmissionsStr) {
-        try {
-          const parsed = JSON.parse(currentSubmissionsStr);
-          if (Array.isArray(parsed)) {
-            currentSubmissions = parsed;
-          }
-        } catch (error) {
-          console.error('Error parsing existing submissions:', error);
-        }
-      }
-      
-      // Add new submission
-      currentSubmissions.push(newSubmission);
-      
-      // Save back to localStorage
-      localStorage.setItem('contactSubmissions', JSON.stringify(currentSubmissions));
-      
+      // Save submission using the API
+      await contactApi.add(newSubmission);
       console.log('Contact form submitted successfully');
-      console.log('New submission:', newSubmission);
-      console.log('All submissions:', currentSubmissions);
-      console.log('Raw localStorage value:', localStorage.getItem('contactSubmissions'));
       
       // Send email using EmailJS
       emailjs.sendForm(
@@ -300,7 +304,7 @@ const TeamWebsite = () => {
       )
         .then(() => {
           setIsSubmitting(false);
-    setFormData({ name: "", email: "", message: "" });
+          setFormData({ name: "", email: "", message: "" });
           setFormSubmitted(true);
           setTimeout(() => setFormSubmitted(false), 5000);
         })
@@ -311,8 +315,54 @@ const TeamWebsite = () => {
         });
     } catch (error) {
       console.error('Error saving contact submission:', error);
-      setIsSubmitting(false);
-      alert("There was an error saving your message. Please try again.");
+      
+      // Fallback to localStorage if API fails
+      try {
+        // Get current submissions from localStorage
+        const currentSubmissionsStr = localStorage.getItem('contactSubmissions');
+        let currentSubmissions = [];
+        
+        // Parse existing submissions if they exist
+        if (currentSubmissionsStr) {
+          try {
+            const parsed = JSON.parse(currentSubmissionsStr);
+            if (Array.isArray(parsed)) {
+              currentSubmissions = parsed;
+            }
+          } catch (error) {
+            console.error('Error parsing existing submissions:', error);
+          }
+        }
+        
+        // Add new submission
+        currentSubmissions.push(newSubmission);
+        
+        // Save back to localStorage
+        localStorage.setItem('contactSubmissions', JSON.stringify(currentSubmissions));
+        
+        // Send email using EmailJS
+        emailjs.sendForm(
+          'service_b2s1ngf',
+          'template_5jk8gai',
+          formRef.current,
+          'fGkt_Y7hHDzWdhXT8'
+        )
+          .then(() => {
+            setIsSubmitting(false);
+            setFormData({ name: "", email: "", message: "" });
+            setFormSubmitted(true);
+            setTimeout(() => setFormSubmitted(false), 5000);
+          })
+          .catch((emailError) => {
+            console.error('Email sending failed:', emailError);
+            setIsSubmitting(false);
+            alert("Your message was saved locally but email delivery failed. We'll still receive your message when we check the admin panel.");
+          });
+      } catch (localError) {
+        console.error('Error with localStorage fallback:', localError);
+        setIsSubmitting(false);
+        alert("There was an error saving your message. Please try again or contact us directly.");
+      }
     }
   };
 
