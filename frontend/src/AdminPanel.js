@@ -53,68 +53,6 @@ const AdminPanel = () => {
   
   // Load data from API or localStorage on component mount
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Load team members
-        const teamMembersData = await teamMembersApi.getAll();
-        if (teamMembersData && Array.isArray(teamMembersData)) {
-          setTeamMembers(teamMembersData);
-        }
-        
-        // Load projects
-        const projectsData = await projectsApi.getAll();
-        if (projectsData && Array.isArray(projectsData)) {
-          setProjects(projectsData);
-        }
-        
-        // Load services
-        const servicesData = await servicesApi.getAll();
-        if (servicesData && Array.isArray(servicesData)) {
-          setServices(servicesData);
-        }
-        
-        // Load contact submissions
-        const contactData = await contactApi.getAll();
-        if (contactData && Array.isArray(contactData)) {
-          console.log('Loaded contact submissions:', contactData);
-          setContactSubmissions(contactData);
-          
-          // Check if there are any new messages
-          const hasNew = contactData.some(submission => submission.isNew);
-          setHasNewMessages(hasNew);
-        }
-      } catch (error) {
-        console.error('Error loading data:', error);
-        
-        // Fallback to localStorage if API fails
-        const loadedTeamMembers = localStorage.getItem('teamMembers');
-        const loadedProjects = localStorage.getItem('projects');
-        const loadedServices = localStorage.getItem('services');
-        const loadedContactSubmissions = localStorage.getItem('contactSubmissions');
-        
-        if (loadedTeamMembers) setTeamMembers(JSON.parse(loadedTeamMembers));
-        if (loadedProjects) setProjects(JSON.parse(loadedProjects));
-        if (loadedServices) setServices(JSON.parse(loadedServices));
-        
-        if (loadedContactSubmissions) {
-          try {
-            const submissions = JSON.parse(loadedContactSubmissions);
-            console.log('Loaded contact submissions from localStorage:', submissions);
-            
-            if (Array.isArray(submissions) && submissions.length > 0) {
-              setContactSubmissions(submissions);
-              
-              // Check if there are any new messages
-              const hasNew = submissions.some(submission => submission.isNew);
-              setHasNewMessages(hasNew);
-            }
-          } catch (error) {
-            console.error('Error parsing contact submissions:', error);
-          }
-        }
-      }
-    };
-    
     loadData();
   }, []);
   
@@ -527,6 +465,69 @@ const AdminPanel = () => {
       } catch (localError) {
         console.error('Error with localStorage fallback:', localError);
         alert(`Error with localStorage fallback: ${localError.message}`);
+      }
+    }
+  };
+
+  // Define loadData function outside useEffect to make it accessible elsewhere
+  const loadData = async () => {
+    try {
+      // Load team members
+      const teamMembersData = await teamMembersApi.getAll();
+      if (teamMembersData && Array.isArray(teamMembersData)) {
+        setTeamMembers(teamMembersData);
+      }
+      
+      // Load projects
+      const projectsData = await projectsApi.getAll();
+      if (projectsData && Array.isArray(projectsData)) {
+        setProjects(projectsData);
+      }
+      
+      // Load services
+      const servicesData = await servicesApi.getAll();
+      if (servicesData && Array.isArray(servicesData)) {
+        setServices(servicesData);
+      }
+      
+      // Load contact submissions
+      const contactData = await contactApi.getAll();
+      if (contactData && Array.isArray(contactData)) {
+        console.log('Loaded contact submissions:', contactData);
+        setContactSubmissions(contactData);
+        
+        // Check if there are any new messages
+        const hasNew = contactData.some(submission => submission.isNew);
+        setHasNewMessages(hasNew);
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      
+      // Fallback to localStorage if API fails
+      const loadedTeamMembers = localStorage.getItem('teamMembers');
+      const loadedProjects = localStorage.getItem('projects');
+      const loadedServices = localStorage.getItem('services');
+      const loadedContactSubmissions = localStorage.getItem('contactSubmissions');
+      
+      if (loadedTeamMembers) setTeamMembers(JSON.parse(loadedTeamMembers));
+      if (loadedProjects) setProjects(JSON.parse(loadedProjects));
+      if (loadedServices) setServices(JSON.parse(loadedServices));
+      
+      if (loadedContactSubmissions) {
+        try {
+          const submissions = JSON.parse(loadedContactSubmissions);
+          console.log('Loaded contact submissions from localStorage:', submissions);
+          
+          if (Array.isArray(submissions) && submissions.length > 0) {
+            setContactSubmissions(submissions);
+            
+            // Check if there are any new messages
+            const hasNew = submissions.some(submission => submission.isNew);
+            setHasNewMessages(hasNew);
+          }
+        } catch (error) {
+          console.error('Error parsing contact submissions:', error);
+        }
       }
     }
   };
