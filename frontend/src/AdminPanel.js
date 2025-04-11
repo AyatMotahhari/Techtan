@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { teamMembersApi, projectsApi, servicesApi, contactApi, testFirebaseConnection } from './firebaseApi';
 import { migrateLocalStorageToFirebase } from './migrateToFirebase';
-import { checkFirebaseConnection } from './firebaseConfig';
+import { checkFirebaseConnection, checkFirebasePermissions } from './firebaseConfig';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -32,6 +32,10 @@ const AdminPanel = () => {
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [diagnosticResults, setDiagnosticResults] = useState(null);
   const [runningDiagnostics, setRunningDiagnostics] = useState(false);
+  
+  // Add state for permissions
+  const [permissionsChecked, setPermissionsChecked] = useState(false);
+  const [permissionsResult, setPermissionsResult] = useState(null);
   
   // Check Firebase connection
   useEffect(() => {
@@ -597,18 +601,41 @@ Contact Submissions: ${results.contactSubmissions.success}/${results.contactSubm
     }
   };
 
-  // Add function to run diagnostics
+  // Run permissions check when connection status is offline
+  useEffect(() => {
+    if (!isOnline && !permissionsChecked) {
+      checkFirebasePermissions().then(result => {
+        setPermissionsResult(result);
+        setPermissionsChecked(true);
+        console.log('Firebase permissions check result:', result);
+      });
+    }
+  }, [isOnline, permissionsChecked]);
+
+  // Update the runFirebaseDiagnostics function
   const runFirebaseDiagnostics = async () => {
     setRunningDiagnostics(true);
     setShowDiagnostics(true);
     
     try {
+      // First check permissions
+      const permissionsCheck = await checkFirebasePermissions();
+      console.log('Permissions check:', permissionsCheck);
+      
+      // Then run connection diagnostics
       const results = await testFirebaseConnection();
+      
+      // Add permissions info to results
+      results.permissionsChecked = true;
+      results.permissionsResult = permissionsCheck;
+      
       setDiagnosticResults(results);
       console.log('Firebase diagnostic results:', results);
       
       // Update online status based on diagnostics
       setIsOnline(results.firestoreWrite);
+      setPermissionsChecked(true);
+      setPermissionsResult(permissionsCheck);
     } catch (error) {
       console.error('Error running diagnostics:', error);
       setDiagnosticResults({
@@ -649,6 +676,35 @@ Contact Submissions: ${results.contactSubmissions.success}/${results.contactSubm
           <p className="text-sm mt-1">
             Your device appears to be offline or cannot reach Firebase. Content changes will be stored locally and synchronized when your connection is restored.
           </p>
+        )}
+        
+        {/* Add permissions troubleshooting section when offline */}
+        {!isOnline && permissionsChecked && permissionsResult && (
+          <div className="mt-3 p-3 bg-white rounded border text-gray-800 text-sm">
+            <h3 className="font-medium mb-2">Firebase Permissions Check</h3>
+            <p className="mb-2">This site is having issues connecting to Firebase. The most common cause is insufficient permissions in your Firebase security rules.</p>
+            
+            <div className="bg-yellow-50 p-2 rounded border border-yellow-200 mb-3">
+              <p className="font-medium">To fix this issue:</p>
+              <ol className="list-decimal list-inside space-y-1 mt-1">
+                <li>Go to <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" className="text-blue-600 underline">Firebase Console</a></li>
+                <li>Select your project: <span className="font-mono bg-gray-100 px-1">techtan-team</span></li>
+                <li>Navigate to Firestore Database → Rules</li>
+                <li>Update the rules to allow read/write access:</li>
+              </ol>
+              <pre className="bg-gray-800 text-white p-2 rounded mt-2 overflow-auto text-xs">
+{`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}`}
+              </pre>
+              <p className="mt-2 text-xs">Note: These rules allow unrestricted access to your database. For production, you should set up proper authentication and security rules.</p>
+            </div>
+          </div>
         )}
         
         {/* Diagnostic Results */}
