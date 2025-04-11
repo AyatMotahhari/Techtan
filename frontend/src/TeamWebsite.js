@@ -878,15 +878,15 @@ const TeamWebsite = () => {
             <>
               {/* Desktop View (3 items per slide) */}
               <div className="hidden lg:block relative">
-                <div className="overflow-hidden">
+                <div className="max-w-[98%] mx-auto overflow-hidden">
                   <div 
                     className="flex transition-transform duration-300 ease-in-out" 
                     style={{ transform: `translateX(-${currentDesktopServiceSlide * 100}%)` }}
                   >
                     {Array.from({ length: Math.ceil(services.length / 3) }).map((_, slideIndex) => (
-                      <div key={`desktop-slide-${slideIndex}`} className="min-w-full flex-shrink-0">
-                        <div className="grid grid-cols-3 gap-6">
-                          {services.slice(slideIndex * 3, slideIndex * 3 + 3).map(service => (
+                      <div key={`desktop-slide-${slideIndex}`} className="min-w-full flex-shrink-0 w-full">
+                        <div className="grid grid-cols-3 gap-5">
+                          {services.slice(slideIndex * 3, slideIndex * 3 + 3).map((service, index) => (
                             <div key={service.id} className="group h-full bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100">
                               {/* Service Header with Gradient */}
                               <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 relative overflow-hidden">
@@ -978,7 +978,7 @@ const TeamWebsite = () => {
                 
                 {/* Navigation for Desktop */}
                 {services.length > 3 && (
-                  <div className="flex justify-between items-center mt-6">
+                  <div className="flex justify-between items-center mt-8">
                     <button 
                       onClick={() => prevSlide('desktop-service')}
                       className="bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
@@ -1015,15 +1015,15 @@ const TeamWebsite = () => {
               
               {/* Tablet View (2 items per slide) */}
               <div className="hidden md:block lg:hidden relative">
-                <div className="overflow-hidden">
+                <div className="max-w-[98%] mx-auto overflow-hidden">
                   <div 
                     className="flex transition-transform duration-300 ease-in-out" 
                     style={{ transform: `translateX(-${currentTabletServiceSlide * 100}%)` }}
                   >
                     {Array.from({ length: Math.ceil(services.length / 2) }).map((_, slideIndex) => (
-                      <div key={`tablet-slide-${slideIndex}`} className="min-w-full flex-shrink-0">
-                        <div className="grid grid-cols-2 gap-6">
-                          {services.slice(slideIndex * 2, slideIndex * 2 + 2).map(service => (
+                      <div key={`tablet-slide-${slideIndex}`} className="min-w-full flex-shrink-0 w-full">
+                        <div className="grid grid-cols-2 gap-5">
+                          {services.slice(slideIndex * 2, slideIndex * 2 + 2).map((service, index) => (
                             <div key={service.id} className="group h-full bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-100">
                               {/* Service Header with Gradient */}
                               <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 relative overflow-hidden">
@@ -1115,7 +1115,7 @@ const TeamWebsite = () => {
                 
                 {/* Navigation for Tablet */}
                 {services.length > 2 && (
-                  <div className="flex justify-between items-center mt-6">
+                  <div className="flex justify-between items-center mt-8">
                     <button 
                       onClick={() => prevSlide('tablet-service')}
                       className="bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
