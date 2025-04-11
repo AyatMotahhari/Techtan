@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { teamMembersApi, projectsApi, servicesApi, contactApi } from './firebaseApi';
+import { teamMembersApi, projectsApi, servicesApi, contactApi, testFirebaseConnection } from './firebaseApi';
 import { migrateLocalStorageToFirebase } from './migrateToFirebase';
+import { checkFirebaseConnection } from './firebaseConfig';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -19,9 +20,53 @@ const AdminPanel = () => {
   const [editingType, setEditingType] = useState(null);
   const [editingId, setEditingId] = useState(null);
   
+  // State for Firebase connection status
+  const [isOnline, setIsOnline] = useState(true);
+  const [checkingConnection, setCheckingConnection] = useState(true);
+  
   // Refs for file inputs
   const teamMemberImageRef = useRef(null);
   const projectImageRef = useRef(null);
+  
+  // Add state for diagnostics
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+  const [diagnosticResults, setDiagnosticResults] = useState(null);
+  const [runningDiagnostics, setRunningDiagnostics] = useState(false);
+  
+  // Check Firebase connection
+  useEffect(() => {
+    const checkConnection = async () => {
+      setCheckingConnection(true);
+      const connectionStatus = await checkFirebaseConnection();
+      setIsOnline(connectionStatus);
+      setCheckingConnection(false);
+      console.log('Firebase connection status:', connectionStatus ? 'ONLINE' : 'OFFLINE');
+    };
+    
+    // Check connection initially and then every 30 seconds
+    checkConnection();
+    const connectionInterval = setInterval(checkConnection, 30000);
+    
+    // Listen for online/offline events
+    const handleOnline = () => {
+      console.log('Browser reports online status');
+      checkConnection();
+    };
+    
+    const handleOffline = () => {
+      console.log('Browser reports offline status');
+      setIsOnline(false);
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      clearInterval(connectionInterval);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   
   // Parse query parameters for editing
   useEffect(() => {
@@ -552,9 +597,123 @@ Contact Submissions: ${results.contactSubmissions.success}/${results.contactSubm
     }
   };
 
+  // Add function to run diagnostics
+  const runFirebaseDiagnostics = async () => {
+    setRunningDiagnostics(true);
+    setShowDiagnostics(true);
+    
+    try {
+      const results = await testFirebaseConnection();
+      setDiagnosticResults(results);
+      console.log('Firebase diagnostic results:', results);
+      
+      // Update online status based on diagnostics
+      setIsOnline(results.firestoreWrite);
+    } catch (error) {
+      console.error('Error running diagnostics:', error);
+      setDiagnosticResults({
+        error: 'Failed to run diagnostics',
+        errorDetails: error.toString()
+      });
+    } finally {
+      setRunningDiagnostics(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-6">Website Content Management</h1>
+      
+      {/* Connection status indicator */}
+      <div className={`mb-4 p-3 rounded-lg ${isOnline ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <span className={`inline-block w-3 h-3 rounded-full mr-2 ${isOnline ? 'bg-green-500' : 'bg-amber-500'}`}></span>
+            <span className="font-medium">
+              {checkingConnection 
+                ? 'Checking Firebase connection...' 
+                : isOnline 
+                  ? 'Connected to Firebase - Changes will sync across all devices' 
+                  : 'Working offline - Changes are saved locally and will sync when connection is restored'}
+            </span>
+          </div>
+          <button 
+            onClick={runFirebaseDiagnostics}
+            className="text-xs bg-gray-200 hover:bg-gray-300 py-1 px-2 rounded"
+            disabled={runningDiagnostics}
+          >
+            {runningDiagnostics ? 'Running...' : 'Run Diagnostics'}
+          </button>
+        </div>
+        {!isOnline && (
+          <p className="text-sm mt-1">
+            Your device appears to be offline or cannot reach Firebase. Content changes will be stored locally and synchronized when your connection is restored.
+          </p>
+        )}
+        
+        {/* Diagnostic Results */}
+        {showDiagnostics && diagnosticResults && (
+          <div className="mt-3 p-3 bg-white rounded border text-gray-800 text-sm">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-medium">Firebase Connection Diagnostics</h3>
+              <button 
+                onClick={() => setShowDiagnostics(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                &times;
+              </button>
+            </div>
+            
+            {diagnosticResults.error && (
+              <div className="mb-2 text-red-600">{diagnosticResults.error}</div>
+            )}
+            
+            <div className="grid grid-cols-1 gap-1">
+              <div className="flex justify-between">
+                <span>Browser Online:</span>
+                <span className={diagnosticResults.browserOnline ? 'text-green-600' : 'text-red-600'}>
+                  {diagnosticResults.browserOnline ? 'Yes' : 'No'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Firebase Reachable:</span>
+                <span className={diagnosticResults.firebaseReachable ? 'text-green-600' : 'text-red-600'}>
+                  {diagnosticResults.firebaseReachable ? 'Yes' : 'No'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Firestore Read:</span>
+                <span className={diagnosticResults.firestoreRead ? 'text-green-600' : 'text-red-600'}>
+                  {diagnosticResults.firestoreRead ? 'Success' : 'Failed'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Firestore Write:</span>
+                <span className={diagnosticResults.firestoreWrite ? 'text-green-600' : 'text-red-600'}>
+                  {diagnosticResults.firestoreWrite ? 'Success' : 'Failed'}
+                </span>
+              </div>
+            </div>
+            
+            {diagnosticResults.errorDetails && (
+              <div className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
+                <code className="whitespace-pre-wrap">{diagnosticResults.errorDetails}</code>
+              </div>
+            )}
+            
+            <div className="mt-2 p-2 bg-blue-50 text-blue-800 rounded">
+              <p className="text-xs"><strong>Troubleshooting tips:</strong></p>
+              <ul className="list-disc list-inside text-xs ml-1 mt-1">
+                <li>Check your internet connection</li>
+                <li>Verify that your Firebase project is active in the Firebase console</li>
+                <li>Check if there are any Firebase service outages</li>
+                <li>Ensure your Firebase API keys and configuration are correct</li>
+                <li>Try using a different network if possible</li>
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
       
       <div className="mb-6">
         <div className="border-b border-gray-200">
@@ -1146,12 +1305,22 @@ Contact Submissions: ${results.contactSubmissions.success}/${results.contactSubm
       <div className="mt-8 border-t pt-4 flex justify-between">
         <div>
           <a href="/" className="text-blue-600 hover:underline mr-4">Back to Website</a>
-          <button 
-            onClick={handleMigration}
-            className="bg-amber-500 text-white px-3 py-1 rounded hover:bg-amber-600 text-sm"
-          >
-            Migrate to Firebase
-          </button>
+          {isOnline && (
+            <button 
+              onClick={handleMigration}
+              className="bg-amber-500 text-white px-3 py-1 rounded hover:bg-amber-600 text-sm"
+            >
+              Migrate to Firebase
+            </button>
+          )}
+          {!isOnline && (
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm ml-2"
+            >
+              Check Connection
+            </button>
+          )}
         </div>
         <button 
           onClick={handleLogout}

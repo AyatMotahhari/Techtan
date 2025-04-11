@@ -7,9 +7,121 @@ import {
   doc, 
   query, 
   where,
-  serverTimestamp 
+  serverTimestamp,
+  getDoc
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
+
+// Function to test Firebase connectivity and provide detailed diagnostic info
+export const testFirebaseConnection = async () => {
+  const results = {
+    browserOnline: navigator.onLine,
+    firebaseReachable: false,
+    firestoreRead: false,
+    firestoreWrite: false,
+    error: null,
+    errorDetails: null,
+    tests: {}
+  };
+  
+  try {
+    // Test 1: Check if the browser is online
+    results.tests.browserStatus = {
+      passed: navigator.onLine,
+      detail: navigator.onLine ? 'Browser reports online' : 'Browser reports offline'
+    };
+    
+    if (!navigator.onLine) {
+      results.error = 'Browser is offline. Check your internet connection.';
+      return results;
+    }
+    
+    // Test 2: Try to reach Firebase domain
+    try {
+      const firebaseReachable = await fetch('https://firestore.googleapis.com/v1', { 
+        method: 'HEAD',
+        mode: 'no-cors', // This is needed for CORS issues
+        cache: 'no-cache'
+      });
+      results.firebaseReachable = true;
+      results.tests.firebaseReachable = {
+        passed: true,
+        detail: 'Firebase domain is reachable'
+      };
+    } catch (error) {
+      results.tests.firebaseReachable = {
+        passed: false,
+        detail: `Firebase domain is unreachable: ${error.message}`
+      };
+      results.error = 'Cannot reach Firebase servers. There might be a network issue or firewall blocking access.';
+      results.errorDetails = error.toString();
+      return results;
+    }
+    
+    // Test 3: Try to read a document from Firestore
+    try {
+      // Try to get a known document or collection listing
+      const testReadRef = doc(db, '_connection_test', 'test_doc');
+      await getDoc(testReadRef);
+      results.firestoreRead = true;
+      results.tests.firestoreRead = {
+        passed: true,
+        detail: 'Successfully read from Firestore'
+      };
+    } catch (error) {
+      results.tests.firestoreRead = {
+        passed: false,
+        detail: `Failed to read from Firestore: ${error.message}`
+      };
+      
+      // Continue with tests even if this fails
+      console.error('Firestore read test failed:', error);
+    }
+    
+    // Test 4: Try to write a document to Firestore
+    try {
+      // Create a test collection if not already there
+      const testData = {
+        timestamp: new Date().toISOString(),
+        test: true
+      };
+      
+      const testWriteRef = collection(db, '_connection_test');
+      const docRef = await addDoc(testWriteRef, testData);
+      await deleteDoc(docRef); // Clean up after test
+      
+      results.firestoreWrite = true;
+      results.tests.firestoreWrite = {
+        passed: true,
+        detail: 'Successfully wrote to Firestore'
+      };
+    } catch (error) {
+      results.tests.firestoreWrite = {
+        passed: false,
+        detail: `Failed to write to Firestore: ${error.message}`
+      };
+      
+      // This is a critical failure if we can't write
+      results.error = 'Cannot write to Firestore. This might be due to permissions or connectivity issues.';
+      results.errorDetails = error.toString();
+      return results;
+    }
+    
+    // If we made it here, everything is working
+    if (results.firestoreRead && results.firestoreWrite) {
+      results.allTests = true;
+    } else {
+      results.error = 'Some Firebase tests failed. See details for more information.';
+    }
+    
+    return results;
+    
+  } catch (error) {
+    results.error = 'Unexpected error during Firebase connection tests';
+    results.errorDetails = error.toString();
+    return results;
+  }
+};
 
 // Team Members API
 export const teamMembersApi = {

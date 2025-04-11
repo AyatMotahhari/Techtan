@@ -199,35 +199,75 @@ const TeamWebsite = () => {
   // Load data from API or localStorage on component mount
   useEffect(() => {
     const loadData = async () => {
+      let dataLoadedFromFirebase = true;
+      
       try {
+        console.log('Attempting to load data from Firebase...');
+        
         // Load team members
         const teamMembersData = await teamMembersApi.getAll();
         if (teamMembersData && Array.isArray(teamMembersData)) {
+          console.log(`Loaded ${teamMembersData.length} team members from Firebase`);
           setTeamMembers(teamMembersData);
+        } else {
+          dataLoadedFromFirebase = false;
+          console.warn('Team members data from Firebase is not an array or is empty');
         }
         
         // Load projects
         const projectsData = await projectsApi.getAll();
         if (projectsData && Array.isArray(projectsData)) {
+          console.log(`Loaded ${projectsData.length} projects from Firebase`);
           setProjects(projectsData);
+        } else {
+          dataLoadedFromFirebase = false;
+          console.warn('Projects data from Firebase is not an array or is empty');
         }
         
         // Load services
         const servicesData = await servicesApi.getAll();
         if (servicesData && Array.isArray(servicesData)) {
+          console.log(`Loaded ${servicesData.length} services from Firebase`);
           setServices(servicesData);
+        } else {
+          dataLoadedFromFirebase = false;
+          console.warn('Services data from Firebase is not an array or is empty');
         }
       } catch (error) {
-        console.error('Error loading data from API:', error);
+        console.error('Error loading data from Firebase:', error);
+        dataLoadedFromFirebase = false;
+      }
+      
+      // If any data failed to load from Firebase, try to load from localStorage
+      if (!dataLoadedFromFirebase) {
+        console.log('Falling back to localStorage for some or all data');
         
-        // Fallback to localStorage
-        const loadedTeamMembers = localStorage.getItem('teamMembers');
-        const loadedProjects = localStorage.getItem('projects');
-        const loadedServices = localStorage.getItem('services');
-        
-        if (loadedTeamMembers) setTeamMembers(JSON.parse(loadedTeamMembers));
-        if (loadedProjects) setProjects(JSON.parse(loadedProjects));
-        if (loadedServices) setServices(JSON.parse(loadedServices));
+        try {
+          // Fallback to localStorage
+          const loadedTeamMembers = localStorage.getItem('teamMembers');
+          const loadedProjects = localStorage.getItem('projects');
+          const loadedServices = localStorage.getItem('services');
+          
+          if (loadedTeamMembers) {
+            const parsed = JSON.parse(loadedTeamMembers);
+            console.log(`Loaded ${parsed.length} team members from localStorage`);
+            setTeamMembers(parsed);
+          }
+          
+          if (loadedProjects) {
+            const parsed = JSON.parse(loadedProjects);
+            console.log(`Loaded ${parsed.length} projects from localStorage`);
+            setProjects(parsed);
+          }
+          
+          if (loadedServices) {
+            const parsed = JSON.parse(loadedServices);
+            console.log(`Loaded ${parsed.length} services from localStorage`);
+            setServices(parsed);
+          }
+        } catch (localStorageError) {
+          console.error('Error loading from localStorage:', localStorageError);
+        }
       }
     };
     
